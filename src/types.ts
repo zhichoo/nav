@@ -1,0 +1,41 @@
+export type Category = "all" | "ai" | "vps" | "dev" | "nomad" | "news" | "weekly" | "tech" | "product";
+export type Article = {
+  id: string;
+  sourceId: string;
+  title: string;
+  translatedTitle: string | null;
+  url: string;
+  domain: string;
+  image?: string | null;
+  publishedAt: string | null;
+  points: number | null;
+  comments: number | null;
+  discussionUrl: string | null;
+  tags: string[];
+};
+export type NodeSeekRanking = "realtime" | "daily" | "weekly";
+export type Source = {
+  id: string;
+  name: string;
+  subtitle: string;
+  category: Exclude<Category, "all">;
+  icon: string;
+  color: string;
+  home: string;
+  feed: string;
+  articles: Article[];
+  updatedAt: string | null;
+  status: "loading" | "live" | "stale" | "error";
+  error: string | null;
+  errorCode?: string | null;
+  checkedAt?: string | null;
+  transport?: "direct" | "proxy" | null;
+  rankings?: Partial<Record<NodeSeekRanking, Pick<Source, "articles" | "updatedAt" | "status" | "error" | "feed" | "checkedAt" | "transport" | "errorCode">>>;
+  attempts?: { route: "direct" | "proxy"; code: string; message: string }[];
+};
+export type FeedResponse = {
+  sources: Source[];
+  refreshInterval: number;
+  updating: boolean;
+  translation: { enabled: boolean; updating: boolean; error: string | null };
+};

@@ -1,0 +1,5 @@
+[
+  { "id": "realtime", "name": "实时", "feed": "https://api.bimg.eu.org/hot.json", "refreshMs": 60000, "staleAfterMs": 600000 },
+  { "id": "daily", "name": "日榜", "feed": "https://api.bimg.eu.org/daily.json", "refreshMs": 300000, "staleAfterMs": 1800000 },
+  { "id": "weekly", "name": "周榜", "feed": "https://api.bimg.eu.org/weekly.json", "refreshMs": 3600000, "staleAfterMs": 10800000 }
+]

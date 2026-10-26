@@ -1,0 +1,4 @@
+# Optional, for local Wrangler only. Copy to .dev.vars and add your own key.
+TRANSLATION_API_KEY=""
+# DeepLX alternative: set TRANSLATION_PROVIDER=deeplx and supply this secret.
+# DEEPLX_URL="https://your-deeplx.example/translate"
