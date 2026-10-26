@@ -70,3 +70,15 @@ test("translation actions share the list text control without boxed button overr
   assert.match(settings, /\[保存并启用\]/);
   assert.doesNotMatch(css, /\.translation-actions button|\.settings-primary|\.settings-secondary/);
 });
+
+
+test("all origins use one light rounded appearance regardless of legacy theme preferences", async () => {
+  const app = await read("src/App.tsx");
+  const css = await read("src/styles.css");
+  assert.doesNotMatch(app, /signal:skin|data-skin|type Skin|card-command|source-rule/);
+  assert.doesNotMatch(css, /data-skin|card-command|source-rule/);
+  assert.match(css, /--paper: #fffcf9/);
+  assert.match(css, /--accent: #0066cc/);
+  assert.match(css, /\.source-summary::before \{ content: "▸"/);
+  assert.match(css, /details\[open\] > \.source-summary::before \{ content: "▾"/);
+});

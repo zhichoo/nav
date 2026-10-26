@@ -18,7 +18,6 @@ import type { Article, Category, FeedResponse, NodeSeekRanking, Source } from ".
 import { articleTitle, expansionLabel, previewArticleCount, readPreference, relativeTime, savePreference } from "./lib";
 
 const initialSources: Source[] = SOURCES.map(source => ({ ...source, category: source.category as Source["category"], articles: [], updatedAt: null, status: "loading", error: null }));
-type Skin = "plain" | "ascii" | "crt";
 function readIds(key: string): string[] {
   try { const value: unknown = JSON.parse(readPreference(key, "[]")); return Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : []; }
   catch { return []; }
@@ -33,7 +32,6 @@ function ArticleCard({ article, index, original, showImages }: {
   const tooltip = title !== article.title ? `${title}\n${article.title}` : title;
   return <article className="card article" ref={personal.ref}>
     <div className="card-inner">
-      <div className="card-command"><span>#{String(index + 1).padStart(2, "0")}</span></div>
       <h3 className="article-title"><a href={article.url} target="_blank" rel="noopener noreferrer" title={tooltip}><span className="plain-rank">{index + 1}. </span>{title}</a></h3>
       {showImages && article.image && !failed && <a className="article-image" href={article.url} target="_blank" rel="noopener noreferrer" tabIndex={-1} aria-hidden="true">
         <img src={article.image} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
@@ -73,7 +71,6 @@ function FeedSection({ source, original, showImages, closed, onToggle, tools, dr
   return <details className={`sites feed-section ${dropClass}`} data-source-drop={source.id} id={source.id} open={!closed}
     onToggle={event => { if (event.currentTarget.open !== !closed) onToggle(source.id, !event.currentTarget.open); }}>
     <summary className="stick source-summary"><span className="source-heading"><strong>{source.name}</strong>{ranking && <NodeSeekTabs value={ranking} onChange={onRankingChange} />}<span className="source-address"> - <a className="source-home" href={source.home} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>{new URL(source.home).hostname.replace(/^www\./, "")}</a></span></span>
-      <span className="source-rule" aria-hidden="true" />
       <span className={`source-status status-${source.status}`} title={[ranking ? "第三方热榜：bimg.eu.org（非官方），时间为榜单生成时间" : "", source.updatedAt ? `${ranking ? "榜单更新" : "最近同步"}：${new Date(source.updatedAt).toLocaleString()}` : "尚无成功同步", source.transport === "proxy" ? "通过本机代理采集" : "直连采集", source.error || ""].filter(Boolean).join("\n")}>{status}<span className="source-count"> / {source.articles.length} 篇</span></span>
       {tools}
     </summary>
@@ -116,7 +113,6 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [notice]);
   const [closed, setClosed] = useState<string[]>(() => readIds("signal:closed"));
-  const [skin] = useState<Skin>(() => { const value = readPreference("signal:skin", "ascii"); return value === "plain" || value === "crt" ? value : "ascii"; });
   const [compact, setCompact] = useState(() => readPreference("signal:layout", "grid") === "compact");
   const [ranking, setRanking] = useState(() => nodeSeekRanking(readPreference("nav:nodeseek-ranking", "daily")));
   function changeRanking(value: NodeSeekRanking) { setRanking(value); savePreference("nav:nodeseek-ranking", value); }
@@ -206,7 +202,7 @@ export default function App() {
     }
   }
   const dropClass = (kind: DragState["kind"], id: string) => drag?.kind === kind && drag.target === id && drag.id !== id ? `drop-${drag.position}` : "";
-  return <PersonalTranslationContext.Provider value={{ translator: personal, allowed: personalAllowed }}><div className={`signal-shell${compact ? " compact" : ""}${drag ? " is-organizing" : ""}`} data-skin={skin} id="top">
+  return <PersonalTranslationContext.Provider value={{ translator: personal, allowed: personalAllowed }}><div className={`signal-shell${compact ? " compact" : ""}${drag ? " is-organizing" : ""}`} id="top">
     <a className="skip-link" href="#feeds">跳到文章</a>
     <header className="header site-header"><div className="masthead"><h1 className="site-name"><span className="wordmark"><span className="brand-copy"><span className="brand-title">Nav</span></span></span></h1><div className="header-links"><button className="text-control" onClick={() => setSettings(true)} aria-label="翻译设置">[设置]</button></div></div><WebSearch /></header>
     <div className="reading-toolbar">

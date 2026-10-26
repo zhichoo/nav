@@ -16,3 +16,17 @@ reference/
 public/baseline/
 *.pem
 *.key
+
+# Local diagnostics and packaging artifacts
+*.log
+coverage/
+screenshots/
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.p12
+*.pfx
+
+# Private maintenance notes; never publish
+/local-ops/

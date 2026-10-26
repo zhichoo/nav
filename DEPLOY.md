@@ -1,6 +1,6 @@
 # Cloudflare Workers 部署
 
-已提供可构建的 Workers 适配，尚未部署到 Cloudflare。GitHub 仓库按用户要求公开；保留 noindex。公开代码不代表已经上线，也不代表第三方内容获得重新授权。
+正式域名配置为 https://nav.zhichoo.com ，保留 https://nav.lzhichao1212.workers.dev 备用入口。后台每分钟调度与 SQLite Durable Object 已创建，站点翻译凭据仅保存为 Worker Secret。GitHub 仓库按用户要求公开；保留 noindex。公开代码与部署均不代表第三方内容获得重新授权。
 
 ## 架构
 
@@ -18,11 +18,14 @@
 ```sh
 npm ci
 npm run check
+npm run release:check -- --history
 npm run cf:check
 npm run cf:dev
 ```
 
-`cf:check` 编译前端并运行 Wrangler dry-run，不上传、不部署。`cf:dev` 默认使用本机 8787 端口，测试定时任务入口只存在于本地模拟器。
+`check` 与 `build` 先检查 Git 候选文件和暂存区；`build` 完成后再检查前端产物。`release:check -- --history` 额外扫描本地 Git 历史；不会联网。常见凭据格式与本机环境文件中的敏感值仅作启发式检查，不能替代人工审查与密钥轮换。
+
+`cf:check` 编译前端并运行 Wrangler dry-run，随后扫描前端与 Worker 构建产物，不上传、不部署。`cf:dev` 默认使用本机 8787 端口，测试定时任务入口只存在于本地模拟器。
 
 Wrangler 本地开发会读取 `.dev.vars`；不存在时也可能读取 `.env`。需要隔离时，复制 `.dev.vars.example` 为 `.dev.vars`，仅填测试凭据。公开仓库不包含任何真实凭据。普通 API GET 不触发采集 / 翻译；本地手动触发下面的测试路由会采集所有来源，并在配置服务凭据后消耗翻译额度：
 
@@ -50,6 +53,8 @@ Key 通过交互输入，不写入 `wrangler.jsonc`、GitHub、浏览器代码�
 首次 Cron 配置传播可能需要几分钟（Cloudflare 提示最长约 15 分钟）；首次采集和翻译也需要时间。刚部署短暂出现空列表不等于 RSS 失效。通过 `/api/health` 的 `lastSyncAt` 与各来源状态检查后台是否已经运行。此健康检查公开但不输出凭据。
 
 ## 自定义二级域名
+
+本项目已在 `wrangler.jsonc` 配置 `nav.zhichoo.com` 为 Custom Domain。部署时由 Cloudflare 管理对应 DNS 与 HTTPS 证书；后续不要手动把这个主机名改成指向其他服务的 CNAME。
 
 默认部署会提供 `<worker>.<account>.workers.dev`，不要求先准备域名。要使用自己的二级域名：Cloudflare 控制台 → Workers & Pages → Nav → Settings → Domains & Routes → Add → Custom Domain，例如 `nav.example.com`。通常需要该主域名在同一 Cloudflare 账号中托管 DNS，由 Cloudflare 创建记录和证书，不需要购买 VPS。
 

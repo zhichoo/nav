@@ -8,3 +8,9 @@
 - Translation title limits are not currency limits. Set provider-side spending limits and monitor Cloudflare usage before opening a service to many readers.
 - Rotate credentials that have previously been pasted into chat or shared elsewhere before production use. A clean repository does not undo a previous credential disclosure.
 - Keep production dependencies current. Wrangler's Miniflare dependency currently has an Undici override to a patched 7.30.1+ version; recheck this override when upgrading tooling.
+
+## Local Release Gate
+
+`npm run release:check` checks non-ignored Git candidates, tracked working files and index blobs. It rejects private/generated paths, symlinks and detected credentials without printing matching values. `npm run release:check -- --history --dist --worker` also checks local Git history and existing build outputs; run `npm run cf:check` first to generate both outputs. The standard check/build commands include the applicable gates, so the existing CI runs them too.
+
+Detection uses common credential patterns plus sensitive values from local root `.env*` / `.dev.vars*` files. It is a best-effort safety check, not a guarantee against arbitrary, encoded or previously disclosed secrets. Ignored files remain local; force-adding them makes the gate reject them. Frontend assets use an explicit allowlist; private snapshots, docs, tests, logs and caches do not belong in `dist`. Worker dry-run output stays in ignored `.wrangler/`.

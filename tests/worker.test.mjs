@@ -195,6 +195,7 @@ test("release config has no credentials or proxy, uses SQLite, excludes baseline
   assert.equal(wrangler.migrations[0].new_sqlite_classes[0], "NavFeedStore");
   for (const key of ["TRANSLATION_API_KEY","DEEPLX_URL","FEED_PROXY_URL"]) assert.equal(wrangler.vars[key], undefined);
   assert.deepEqual(wrangler.triggers.crons, ["* * * * *"]);
+  assert.deepEqual(wrangler.routes, [{ pattern: "nav.zhichoo.com", custom_domain: true }]);
   const vite = await readFile(new URL("../vite.config.ts",import.meta.url),"utf8");
   assert.match(vite, /copyPublicDir: false/);
   const ignore = await readFile(new URL("../public/.assetsignore",import.meta.url),"utf8");

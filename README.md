@@ -1,25 +1,26 @@
 # Nav
 
-先保留 Buzzing 原样首页基线，再制作复古 / ASCII 衍生的文章聚合站。React + TypeScript + Vite 前端，Node.js 原生 HTTP 后端；另提供 Cloudflare Workers + SQLite Durable Object 云端适配。
+布局学习自 Buzzing 的文章聚合站，统一使用白底、蓝色链接、圆角卡片的阅读样式。React + TypeScript + Vite 前端，Node.js 原生 HTTP 后端；另提供 Cloudflare Workers + SQLite Durable Object 云端适配。
 
-## 两个版本
+## 本地与线上
 
 - http://127.0.0.1:5186/baseline/index.html：Buzzing 首页静态学习快照，保留原 HTML、CSS 和原生交互，仅增加 noindex / 来源注释。不是持续更新的 Buzzing 镜像，外部图片仍需联网。
-- http://127.0.0.1:5186/：自有实时数据的Nav 衍生版；保留原版布局 / ASCII 纸屏 / CRT 终端样式实现，但按用户要求移除页头风格选择入口，沿用本机已有选择。原版布局仅切换衍生站外观，不等同于完整原站副本。
+- http://127.0.0.1:5186/：自有实时数据的 Nav。仅保留一套外观，本地与生产构建相同，不再读取旧的主题偏好；卡片 / 列表、有图 / 无图、中文 / 原文仍可切换。
 
 布局基于提取的原始 CSS：`flex: 1 1 15.625em`、400px 淡出容器、来源 details 折叠、480px 以下单列。不加入 Hero、侧栏或仪表盘。文档字节 / CSS 等价测试通过；**未完成所有第三方媒体离线镜像、断网门或像素对拍，不宣称完整 L2/L3 验收通过**。详见 `REBUILD_PLAN.md`、`docs/divergence.md`。
 
-代码仓库按用户要求公开，当前尚未部署线上服务，保留 noindex。原站完整学习快照仅保存在本机，不包含于公开仓库或生产构建。第三方来源与许可范围见 `THIRD_PARTY_NOTICES.md`。
+代码仓库按用户要求公开，正式访问地址配置为 https://nav.zhichoo.com ，保留 https://nav.lzhichao1212.workers.dev 备用入口与 noindex。原站完整学习快照仅保存在本机，不包含于公开仓库或生产构建。第三方来源与许可范围见 `THIRD_PARTY_NOTICES.md`。
 
 ## Cloudflare Workers
 
 ```sh
 npm ci
 npm run check
+npm run release:check -- --history  # 本地检查 Git 历史，不联网
 npm run cf:check  # 构建和部署预检，不上传
 ```
 
-已支持共享持久缓存、每分钟后台调度、NodeSeek 三榜独立更新、站点翻译 Secret 和持久化日额度。个人接口仍只在浏览器直连。部署步骤、二级域名、GitHub 自动部署及用量边界见 [DEPLOY.md](DEPLOY.md)。实际部署命令为 `npm run cf:deploy`，本轮不执行。
+已支持共享持久缓存、每分钟后台调度、NodeSeek 三榜独立更新、站点翻译 Secret 和持久化日额度。个人接口仍只在浏览器直连。部署步骤、二级域名、GitHub 自动部署及用量边界见 [DEPLOY.md](DEPLOY.md)。实际部署命令为 `npm run cf:deploy`，需提供你自己的 Cloudflare 部署认证。
 
 ## 开发
 
@@ -79,7 +80,7 @@ Node 原生 fetch 不会自动沿用 macOS 系统代理，这正是此前 V2EX�
 
 ## 中文翻译
 
-默认使用站点公共译文；个人翻译在页头「[设置]」中配置，无需登录。本地运行使用 Node 与磁盘缓存；Workers 运行使用 Durable Object 持久缓存。Workers 适配已经完成，本轮未上线部署。
+默认使用站点公共译文；个人翻译在页头「[设置]」中配置，无需登录。本地运行使用 Node 与磁盘缓存；Workers 运行使用 Durable Object 持久缓存。Workers 适配已部署上线。
 
 ### 站点翻译
 
