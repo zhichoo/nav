@@ -5,7 +5,7 @@ import sources from "../shared/sources.json" with { type: "json" };
 import { parseSource } from "../server/sources.mjs";
 
 test("categories cover the curated source catalog without restoring cancelled layouts", () => {
-  assert.equal(sources.length, 30);
+  assert.equal(sources.length, 27);
   assert.equal(new Set(CATEGORIES.map(item => item.id)).size, CATEGORIES.length);
   assert.equal(CATEGORIES[0].id, "all");
   for (const source of sources) {
@@ -53,9 +53,10 @@ test("catalog uses independent public feeds, excludes failed candidates and keep
 
 
 test("requested removals are unsubscribed, and News keeps three complementary channels without BBC", () => {
-  const removed = ["showhn", "stackoverflow", "hnnew", "nomadgate", "nomadicmatt", "nomadicnotes", "nature", "bbc", "npr", "axios", "sky", "nytimes", "atlantic", "newyorker", "economistnew", "bloomberg", "wsj", "businessinsider", "googlenews", "news", "finance", "china"];
+  const removed = ["phys", "sciencealert", "bigthink", "showhn", "stackoverflow", "hnnew", "nomadgate", "nomadicmatt", "nomadicnotes", "nature", "bbc", "npr", "axios", "sky", "nytimes", "atlantic", "newyorker", "economistnew", "bloomberg", "wsj", "businessinsider", "googlenews", "news", "finance", "china"];
   for (const id of removed) assert.ok(!sources.some(source => source.id === id), id);
   assert.deepEqual(sources.filter(source => source.category === "news").map(source => source.id).sort(), ["economist", "ft", "guardian"]);
   assert.deepEqual(sources.filter(source => source.category === "nomad").map(source => source.id), ["nodeseek", "nodeloc"]);
+  assert.deepEqual(sources.filter(source => source.category === "tech").map(source => source.id), ["hn", "arstechnica", "solidot"]);
   assert.equal(CATEGORIES.find(category => category.id === "nomad").name, "数字生活");
 });

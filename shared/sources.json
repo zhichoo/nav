@@ -253,39 +253,6 @@
     "kind": "rss"
   },
   {
-    "id": "phys",
-    "name": "Phys.org",
-    "subtitle": "科学研究、物理与自然科学新闻",
-    "category": "tech",
-    "icon": "",
-    "color": "",
-    "home": "https://phys.org",
-    "feed": "https://phys.org/rss-feed/",
-    "kind": "rss"
-  },
-  {
-    "id": "sciencealert",
-    "name": "ScienceAlert",
-    "subtitle": "科学发现与科普报道",
-    "category": "tech",
-    "icon": "",
-    "color": "",
-    "home": "https://www.sciencealert.com",
-    "feed": "https://www.sciencealert.com/feed",
-    "kind": "rss"
-  },
-  {
-    "id": "bigthink",
-    "name": "Big Think",
-    "subtitle": "科学、知识与思想",
-    "category": "tech",
-    "icon": "",
-    "color": "",
-    "home": "https://bigthink.com",
-    "feed": "https://bigthink.com/feed/",
-    "kind": "rss"
-  },
-  {
     "id": "economist",
     "name": "经济学人 · 本周",
     "subtitle": "The World This Week 官方 RSS",

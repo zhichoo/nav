@@ -203,19 +203,30 @@ test("release config has no credentials or proxy, uses SQLite, excludes baseline
 });
 
 
-test("removed Show HN cache is neither displayed nor scheduled, while HN and Ask HN remain", async () => {
-  const storage = memoryStorage([["source:showhn", {
-    id: "showhn", feed: "https://hnrss.org/show", kind: "rss",
-    articles: [{ title: "Removed source article", url: "https://example.com/removed" }],
-  }]]);
+test("removed subscriptions stay out of Worker payloads and jobs while HN and Ask HN remain", async () => {
+  const removed = [
+    ["showhn", "https://hnrss.org/show"],
+    ["phys", "https://phys.org/rss-feed/"],
+    ["sciencealert", "https://www.sciencealert.com/feed"],
+    ["bigthink", "https://bigthink.com/feed/"],
+  ];
+  const storage = memoryStorage(removed.map(([id, feed]) => [`source:${id}`, {
+    id, feed, kind: "rss",
+    articles: [{ title: "Removed source article", url: `https://example.com/removed/${id}` }],
+  }]));
   const { store, calls } = fixture({ storage, sources: SOURCES });
   const before = await store.payload();
-  assert.equal(before.sources.length, 30);
-  assert.ok(!before.sources.some(source => source.id === "showhn"));
+  assert.equal(before.sources.length, 27);
+  for (const [id] of removed) assert.ok(!before.sources.some(source => source.id === id), id);
   for (const id of ["hn", "askhn"]) assert.ok(before.sources.some(source => source.id === id));
   await store.refresh();
-  assert.ok(!calls.includes("https://hnrss.org/show"));
+  const after = await store.payload();
+  const health = await store.health();
+  for (const [id, feed] of removed) {
+    assert.ok(!calls.includes(feed), id);
+    assert.ok(!after.sources.some(source => source.id === id), id);
+    assert.ok(!health.sources.some(source => source.id === id), id);
+  }
   assert.ok(calls.includes("https://hnrss.org/frontpage"));
   assert.ok(calls.includes("https://hnrss.org/ask"));
-  assert.ok(!(await store.health()).sources.some(source => source.id === "showhn"));
 });

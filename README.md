@@ -44,7 +44,7 @@ npm start
 
 ## 数据与更新
 
-来源目录统一保存在 `shared/sources.json`，前后端共享配置，共 30 个来源。本轮按用户选择从 50 个精简：移除 6 个指定来源，News 从 18 个减至 3 个，数字生活补入 2 个已验证公开订阅。
+来源目录统一保存在 `shared/sources.json`，前后端共享配置，共 27 个来源。News 保留 3 个互补频道，科技保留 3 个来源，数字生活使用 2 个已验证公开订阅。
 
 - AI：OpenAI News、Simon Willison、Latent Space、Anthropic News、Google DeepMind、Hugging Face Blog
 - VPS / 基础设施：LowEndBox、LowEndTalk、Cloudflare Blog
@@ -52,9 +52,10 @@ npm start
 - 数字生活：NodeSeek、NodeLoc
 - News：The Guardian World、金融时报、经济学人「本周」
 - 周刊：阮一峰科技爱好者周刊、大橘和朋友们的周刊、Import AI
-- 科技 / 产品：Hacker News、Ars Technica、Solidot、Phys.org、ScienceAlert、Big Think、Product Hunt、少数派
+- 科技：Hacker News、Ars Technica、Solidot
+- 产品：Product Hunt、少数派
 
-Show HN 已按要求移除，保留 Hacker News 首页和 Ask HN。移除后不再采集或参与新标题翻译，不会被旧缓存恢复。
+已移除 Show HN、Phys.org、ScienceAlert 和 Big Think，保留 Hacker News 首页和 Ask HN。移除的来源不再采集或参与新标题翻译，不会被旧缓存恢复。
 
 本轮真正停用 Stack Overflow Blog、HN 最新、Nomad Gate、Nomadic Matt、Nomadic Notes、Nature，以及未保留的 News 来源（含 BBC 与四个 Google News 频道）。这些来源不再采集或参与新标题翻译，不是仅在页面隐藏；历史译文缓存不主动删除。保留媒体按覆盖面互补选择，不保证某一家绝对准确；FT / 经济学人原文可能需要订阅。
 两位作者的订阅地址分别为 `https://www.ruanyifeng.com/blog/atom.xml` 和 `https://rrorangeandfriends.de/feed.xml`。前者是作者公开的整个博客 Atom（当前条目为周刊），不冒充仅周刊专用 feed；后者会更新最新期数，不固定在第 038 期。Simon Willison 属于个人技术博客，不保证每篇都是 AI 主题；VPS 分类也包含基础设施。数字生活关注互联网服务、优惠情报及 eSIM，不再订阅旅行攻略；内部分类 ID 仍为 `nomad`，以兼容用户已保存的分类顺序。NodeSeek / NodeLoc 为用户社区，涉及网络工具、互联网服务、优惠、额度活动和使用经验，包含推广和交易，不代表本站验证或背书。eSIMDB 虽能采集，但条目更新较慢且偏出境上网，本轮不加入；也不加入未经验证的虚拟卡推广源。社区信息不保证每条都涉及虚拟卡或 eSIM，不承诺活动有效或服务商可靠。
