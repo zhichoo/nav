@@ -82,3 +82,24 @@ test("all origins use one light rounded appearance regardless of legacy theme pr
   assert.match(css, /\.source-summary::before \{ content: "▸"/);
   assert.match(css, /details\[open\] > \.source-summary::before \{ content: "▾"/);
 });
+
+
+test("bulk collapse sits beside layout and controls only visible source sections", async () => {
+  const app = await read("src/App.tsx");
+  assert.match(app, /\[ 列表 \][\s\S]*?<\/button>\{category !== "ignored" && <button className="text-control" onClick=\{toggleAllSections\}/);
+  assert.match(app, /disabled=\{!visibleSourceIds.length\} aria-expanded=\{allOpen\} aria-controls="feeds"/);
+  assert.match(app, /toggleSections\(current, visibleSourceIds\)/);
+  assert.match(app, /savePreference\("signal:closed", JSON.stringify\(next\)\)/);
+});
+
+test("source categories appear after domains, before status, only in all view", async () => {
+  const app = await read("src/App.tsx");
+  const css = await read("src/styles.css");
+  assert.match(app, /categoryName=\{category === "all" \? CATEGORIES.find\(item => item.id === source.category\)\?\.name : undefined\}/);
+  assert.match(app, /categoryName && <span className="source-category"> · \{categoryName\}<\/span>/);
+  const domain = app.indexOf('className="source-home"');
+  const label = app.indexOf('className="source-category"');
+  const status = app.indexOf('className={`source-status');
+  assert.ok(domain < label && label < status);
+  assert.match(css, /\.source-category \{[^}]*color: var\(--muted\);[^}]*font-weight: 400;/);
+});

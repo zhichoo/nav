@@ -15,7 +15,7 @@ import { PERSONAL_PREFERENCE_KEY, readPersonalConfig } from "./personal-preferen
 import { categoryOrder, ignoreSource, moveCategory, moveVisibleSources, normalizeOrder, organizedSources, parseOrganization } from "./organization";
 import type { Organization } from "./organization";
 import type { Article, Category, FeedResponse, NodeSeekRanking, Source } from "./types";
-import { articleTitle, expansionLabel, previewArticleCount, readPreference, relativeTime, savePreference } from "./lib";
+import { allSectionsOpen, articleTitle, expansionLabel, toggleSections, previewArticleCount, readPreference, relativeTime, savePreference } from "./lib";
 
 const initialSources: Source[] = SOURCES.map(source => ({ ...source, category: source.category as Source["category"], articles: [], updatedAt: null, status: "loading", error: null }));
 function readIds(key: string): string[] {
@@ -45,8 +45,8 @@ function ArticleCard({ article, index, original, showImages }: {
   </article>;
 }
 
-function FeedSection({ source, original, showImages, closed, onToggle, tools, dropClass, ranking, onRankingChange }: {
-  source: Source; original: boolean; showImages: boolean; ranking?: NodeSeekRanking; onRankingChange: (ranking: NodeSeekRanking) => void;
+function FeedSection({ source, original, showImages, categoryName, closed, onToggle, tools, dropClass, ranking, onRankingChange }: {
+  source: Source; original: boolean; showImages: boolean; categoryName?: string; ranking?: NodeSeekRanking; onRankingChange: (ranking: NodeSeekRanking) => void;
   closed: boolean; onToggle: (id: string, closed: boolean) => void; tools: ReactNode; dropClass: string;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -70,7 +70,7 @@ function FeedSection({ source, original, showImages, closed, onToggle, tools, dr
   const status = { live: "LIVE", stale: "CACHED", error: "OFFLINE", loading: "CONNECTING" }[source.status];
   return <details className={`sites feed-section ${dropClass}`} data-source-drop={source.id} id={source.id} open={!closed}
     onToggle={event => { if (event.currentTarget.open !== !closed) onToggle(source.id, !event.currentTarget.open); }}>
-    <summary className="stick source-summary"><span className="source-heading"><strong>{source.name}</strong>{ranking && <NodeSeekTabs value={ranking} onChange={onRankingChange} />}<span className="source-address"> - <a className="source-home" href={source.home} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>{new URL(source.home).hostname.replace(/^www\./, "")}</a></span></span>
+    <summary className="stick source-summary"><span className="source-heading"><strong>{source.name}</strong>{ranking && <NodeSeekTabs value={ranking} onChange={onRankingChange} />}<span className="source-address"> - <a className="source-home" href={source.home} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>{new URL(source.home).hostname.replace(/^www\./, "")}</a></span>{categoryName && <span className="source-category"> · {categoryName}</span>}</span>
       <span className={`source-status status-${source.status}`} title={[ranking ? "第三方热榜：bimg.eu.org（非官方），时间为榜单生成时间" : "", source.updatedAt ? `${ranking ? "榜单更新" : "最近同步"}：${new Date(source.updatedAt).toLocaleString()}` : "尚无成功同步", source.transport === "proxy" ? "通过本机代理采集" : "直连采集", source.error || ""].filter(Boolean).join("\n")}>{status}<span className="source-count"> / {source.articles.length} 篇</span></span>
       {tools}
     </summary>
@@ -170,6 +170,15 @@ export default function App() {
   const categories = categoryOrder(organization.categoryOrder, CATEGORIES.map(item => item.id));
   const allSourceIds = normalizeOrder(organization.sourceOrder, sources.map(source => source.id));
   const visibleSources = organizedSources(sources, organization, category);
+  const visibleSourceIds = visibleSources.map(source => source.id);
+  const allOpen = allSectionsOpen(closed, visibleSourceIds);
+  function toggleAllSections() {
+    setClosed(current => {
+      const next = toggleSections(current, visibleSourceIds);
+      savePreference("signal:closed", JSON.stringify(next));
+      return next;
+    });
+  }
   const ignoredCount = sources.filter(source => organization.ignored.includes(source.id)).length;
   function selectCategory(id: Category | "ignored") { setCategory(id); savePreference("signal:category", id); }
   function toggleIgnored(id: string, ignored: boolean) {
@@ -213,7 +222,7 @@ export default function App() {
           selected={category === id} className={`${dropClass("category", id)}${ignored && category !== "ignored" && drag?.kind === "source" ? " ignore-drop-target" : ""}${ignored && drag?.target === "ignored" ? " drop-active" : ""}`}
           onSelect={() => selectCategory(id as Category | "ignored")} onDrop={handleDrop} onChange={setDrag} onShift={direction => moveCategoryByKey(id, direction)} />;
       })}</nav>
-      <div className="reading-controls"><button className="text-control" aria-pressed={compact} onClick={() => { setCompact(!compact); savePreference("signal:layout", compact ? "grid" : "compact"); }} title="切换卡片 / 紧凑列表">{compact ? "[ 卡片 ]" : "[ 列表 ]"}</button><div className="language-switch image-switch" role="group" aria-label="文章配图"><button aria-pressed={showImages} onClick={() => { setShowImages(true); savePreference("signal:images", "show"); }}>有图</button><button aria-pressed={!showImages} onClick={() => { setShowImages(false); savePreference("signal:images", "hide"); }}>无图</button></div><div className="language-switch" role="group" aria-label="文章语言"><button aria-pressed={!original} onClick={() => { setOriginal(false); savePreference("signal:language", "translated"); }}>中文翻译</button><button aria-pressed={original} onClick={() => { setOriginal(true); savePreference("signal:language", "original"); }}>原文</button></div></div>
+      <div className="reading-controls"><button className="text-control" aria-pressed={compact} onClick={() => { setCompact(!compact); savePreference("signal:layout", compact ? "grid" : "compact"); }} title="切换卡片 / 紧凑列表">{compact ? "[ 卡片 ]" : "[ 列表 ]"}</button>{category !== "ignored" && <button className="text-control" onClick={toggleAllSections} disabled={!visibleSourceIds.length} aria-expanded={allOpen} aria-controls="feeds" aria-label={`${allOpen ? "收起" : "展开"}当前分类全部来源`}>{allOpen ? "[ 收起 ]" : "[ 展开 ]"}</button>}<div className="language-switch image-switch" role="group" aria-label="文章配图"><button aria-pressed={showImages} onClick={() => { setShowImages(true); savePreference("signal:images", "show"); }}>有图</button><button aria-pressed={!showImages} onClick={() => { setShowImages(false); savePreference("signal:images", "hide"); }}>无图</button></div><div className="language-switch" role="group" aria-label="文章语言"><button aria-pressed={!original} onClick={() => { setOriginal(false); savePreference("signal:language", "translated"); }}>中文翻译</button><button aria-pressed={original} onClick={() => { setOriginal(true); savePreference("signal:language", "original"); }}>原文</button></div></div>
     </div>
     {networkError && <p className="network-notice" role="alert">无法连接聚合服务，已有内容仍可阅读。<button onClick={() => setRevision(value => value + 1)}>重试</button></p>}
     {translation.error && <p className="network-notice" role="status">{personalStatus.active && !personalStatus.paused ? "站点翻译暂不可用，个人接口将按需补译；已有译文仍可阅读。" : "站点翻译暂不可用，已有译文仍可阅读。"}<button onClick={() => setSettings(true)}>翻译设置</button></p>}
@@ -228,7 +237,7 @@ export default function App() {
           <div><strong>{source.name}</strong><span>{CATEGORIES.find(item => item.id === source.category)?.name} · <a href={source.home} target="_blank" rel="noopener noreferrer">{new URL(source.home).hostname.replace(/^www\./, "")}</a></span></div>
           <button className="restore-source" onClick={() => toggleIgnored(source.id, false)} aria-label={`恢复${source.name}`}>恢复</button>
         </div>)}
-      </section> : visibleSources.map((source, index) => <FeedSection key={source.id} source={selectNodeSeekRanking(source, ranking)} ranking={source.id === "nodeseek" ? ranking : undefined} onRankingChange={changeRanking} original={original} showImages={showImages} closed={closed.includes(source.id)} onToggle={toggleClosed} dropClass={dropClass("source", source.id)} tools={<SourceTools id={source.id} name={source.name} canMoveUp={index > 0} canMoveDown={index < visibleSources.length - 1} onMove={direction => moveSource(source.id, direction)} onIgnore={() => toggleIgnored(source.id, true)} onDrop={handleDrop} onDrag={setDrag} />} />)}
+      </section> : visibleSources.map((source, index) => <FeedSection key={source.id} source={selectNodeSeekRanking(source, ranking)} ranking={source.id === "nodeseek" ? ranking : undefined} onRankingChange={changeRanking} original={original} showImages={showImages} categoryName={category === "all" ? CATEGORIES.find(item => item.id === source.category)?.name : undefined} closed={closed.includes(source.id)} onToggle={toggleClosed} dropClass={dropClass("source", source.id)} tools={<SourceTools id={source.id} name={source.name} canMoveUp={index > 0} canMoveDown={index < visibleSources.length - 1} onMove={direction => moveSource(source.id, direction)} onIgnore={() => toggleIgnored(source.id, true)} onDrop={handleDrop} onDrag={setDrag} />} />)}
       {category !== "ignored" && visibleSources.length === 0 && <div className="ignored-empty">这个分类的来源已被忽略。<button className="text-control" onClick={() => selectCategory("ignored")}>前往【忽略】恢复</button></div>}
     </main>
     <footer className="footer site-footer"><span className="footer-mark">Nav</span><nav className="footer-actions" aria-label="页尾导航"><button className="footer-about" onClick={() => setAbout(true)}>关于</button><span aria-hidden="true">/</span><a className="back-top" href="#top">↑ 回到顶部</a></nav></footer>

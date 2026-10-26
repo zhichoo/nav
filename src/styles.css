@@ -49,6 +49,7 @@ a:visited { color: var(--accent); }
 .source-heading { min-width: 0; font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
 .source-summary strong { font-size: inherit; }
 .source-address { color: var(--muted); }
+.source-category { color: var(--muted); font-size: 12px; font-weight: 400; white-space: nowrap; }
 .source-summary .source-home:link, .source-summary .source-home:visited { color: var(--muted); text-decoration: none; }
 .source-summary .source-home:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 .source-status { float: right; font-size: 10px; font-weight: 400; color: var(--muted); letter-spacing: .5px; }

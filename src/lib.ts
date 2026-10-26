@@ -38,3 +38,16 @@ export function previewArticleCount(width: number, fontSize = 16): number {
 export function expansionLabel(expanded: boolean, original: boolean): string {
   return original ? (expanded ? "SHOW LESS" : "SHOW MORE") : (expanded ? "收起" : "显示全部");
 }
+
+export function allSectionsOpen(closed: string[], visible: string[]): boolean {
+  const closedIds = new Set(closed);
+  return visible.length > 0 && visible.every(id => !closedIds.has(id));
+}
+
+export function toggleSections(closed: string[], visible: string[]): string[] {
+  if (!visible.length) return closed;
+  const visibleIds = new Set(visible);
+  return allSectionsOpen(closed, visible)
+    ? [...new Set([...closed, ...visible])]
+    : closed.filter(id => !visibleIds.has(id));
+}
