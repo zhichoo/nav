@@ -201,3 +201,21 @@ test("release config has no credentials or proxy, uses SQLite, excludes baseline
   const ignore = await readFile(new URL("../public/.assetsignore",import.meta.url),"utf8");
   assert.match(ignore, /\/baseline\/\*\*/);
 });
+
+
+test("removed Show HN cache is neither displayed nor scheduled, while HN and Ask HN remain", async () => {
+  const storage = memoryStorage([["source:showhn", {
+    id: "showhn", feed: "https://hnrss.org/show", kind: "rss",
+    articles: [{ title: "Removed source article", url: "https://example.com/removed" }],
+  }]]);
+  const { store, calls } = fixture({ storage, sources: SOURCES });
+  const before = await store.payload();
+  assert.equal(before.sources.length, 30);
+  assert.ok(!before.sources.some(source => source.id === "showhn"));
+  for (const id of ["hn", "askhn"]) assert.ok(before.sources.some(source => source.id === id));
+  await store.refresh();
+  assert.ok(!calls.includes("https://hnrss.org/show"));
+  assert.ok(calls.includes("https://hnrss.org/frontpage"));
+  assert.ok(calls.includes("https://hnrss.org/ask"));
+  assert.ok(!(await store.health()).sources.some(source => source.id === "showhn"));
+});

@@ -29,7 +29,7 @@ test("requested authors use discovered feeds rather than individual post URLs", 
 
 
 test("old cached subscriptions cannot reappear after catalog removal", async () => {
-  const removed = ["bbc", "nature", "stackoverflow", "nomadgate", "nomadicmatt", "nomadicnotes", "hnnew"];
+  const removed = ["showhn", "bbc", "nature", "stackoverflow", "nomadgate", "nomadicmatt", "nomadicnotes", "hnnew"];
   const calls = [];
   const service = createFeedService({
     sources: SOURCES,

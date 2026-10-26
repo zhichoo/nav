@@ -242,17 +242,6 @@
     "kind": "rss"
   },
   {
-    "id": "showhn",
-    "name": "Show HN",
-    "subtitle": "开发者展示的新作品与项目",
-    "category": "dev",
-    "icon": "",
-    "color": "",
-    "home": "https://news.ycombinator.com/show",
-    "feed": "https://hnrss.org/show",
-    "kind": "rss"
-  },
-  {
     "id": "askhn",
     "name": "Ask HN",
     "subtitle": "Hacker News 社区问答",
