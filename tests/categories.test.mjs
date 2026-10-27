@@ -53,9 +53,9 @@ test("catalog uses independent public feeds, excludes failed candidates and keep
 
 
 test("requested removals are unsubscribed, and News keeps three complementary channels without BBC", () => {
-  const removed = ["phys", "sciencealert", "bigthink", "showhn", "stackoverflow", "hnnew", "nomadgate", "nomadicmatt", "nomadicnotes", "nature", "bbc", "npr", "axios", "sky", "nytimes", "atlantic", "newyorker", "economistnew", "bloomberg", "wsj", "businessinsider", "googlenews", "news", "finance", "china"];
+  const removed = ["economist", "phys", "sciencealert", "bigthink", "showhn", "stackoverflow", "hnnew", "nomadgate", "nomadicmatt", "nomadicnotes", "nature", "bbc", "npr", "axios", "sky", "nytimes", "atlantic", "newyorker", "economistnew", "bloomberg", "wsj", "businessinsider", "googlenews", "news", "finance", "china"];
   for (const id of removed) assert.ok(!sources.some(source => source.id === id), id);
-  assert.deepEqual(sources.filter(source => source.category === "news").map(source => source.id).sort(), ["economist", "ft", "guardian"]);
+  assert.deepEqual(sources.filter(source => source.category === "news").map(source => source.id).sort(), ["ft", "guardian", "thepaper"]);
   assert.deepEqual(sources.filter(source => source.category === "nomad").map(source => source.id), ["nodeseek", "nodeloc"]);
   assert.deepEqual(sources.filter(source => source.category === "tech").map(source => source.id), ["hn", "arstechnica", "solidot"]);
   assert.equal(CATEGORIES.find(category => category.id === "nomad").name, "数字生活");

@@ -205,6 +205,7 @@ test("release config has no credentials or proxy, uses SQLite, excludes baseline
 
 test("removed subscriptions stay out of Worker payloads and jobs while HN and Ask HN remain", async () => {
   const removed = [
+    ["economist", "https://www.economist.com/the-world-this-week/rss.xml"],
     ["showhn", "https://hnrss.org/show"],
     ["phys", "https://phys.org/rss-feed/"],
     ["sciencealert", "https://www.sciencealert.com/feed"],
@@ -229,4 +230,5 @@ test("removed subscriptions stay out of Worker payloads and jobs while HN and As
   }
   assert.ok(calls.includes("https://hnrss.org/frontpage"));
   assert.ok(calls.includes("https://hnrss.org/ask"));
+  assert.ok(calls.includes("https://m.thepaper.cn/channel_25950"));
 });

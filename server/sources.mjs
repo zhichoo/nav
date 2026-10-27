@@ -2,6 +2,8 @@ import { XMLParser } from "fast-xml-parser";
 import { createHash } from "node:crypto";
 import { feedFailure, finalFeedError, proxyDispatcher } from "./feed-network.mjs";
 
+import { parseThePaperNews } from "./thepaper.mjs";
+
 import sourceCatalog from "../shared/sources.json" with { type: "json" };
 
 export const SOURCES = sourceCatalog;
@@ -98,6 +100,8 @@ export function parseSource(source, payload) {
   let items;
   if (source.kind === "anthropic") {
     items = parseAnthropicNews(payload);
+  } else if (source.kind === "thepaper") {
+    items = parseThePaperNews(payload);
   } else if (source.kind === "nodeseek") {
     if (!payload || !Array.isArray(payload.posts) || !nodeSeekUpdatedAt(payload)) throw new Error("Invalid NodeSeek ranking response");
     items = payload.posts.flatMap(item => {
@@ -237,7 +241,7 @@ export async function fetchSourceDetailed(source, {
       }
       let data;
       try {
-        data = ["rss", "anthropic"].includes(source.kind) ? await response.text() : await response.json();
+        data = ["rss", "anthropic", "thepaper"].includes(source.kind) ? await response.text() : await response.json();
       } catch (error) {
         if (error instanceof SyntaxError) error.feedCode = "PARSE";
         throw error;

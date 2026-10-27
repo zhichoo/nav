@@ -253,15 +253,15 @@
     "kind": "rss"
   },
   {
-    "id": "economist",
-    "name": "经济学人 · 本周",
-    "subtitle": "The World This Week 官方 RSS",
+    "id": "thepaper",
+    "name": "澎湃新闻 · 时事",
+    "subtitle": "澎湃官方时事频道，直接读取公开页面",
     "category": "news",
     "icon": "",
     "color": "",
-    "home": "https://www.economist.com",
-    "feed": "https://www.economist.com/the-world-this-week/rss.xml",
-    "kind": "rss"
+    "home": "https://m.thepaper.cn/channel_25950",
+    "feed": "https://m.thepaper.cn/channel_25950",
+    "kind": "thepaper"
   },
   {
     "id": "ft",
