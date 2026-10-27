@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { PointerEvent } from "react";
 import type { DropPosition } from "./organization";
+import { sourceDropTarget } from "./source-drop";
 
 export type DragState = { kind: "category" | "source"; id: string; target: string; position: DropPosition };
 type Props = {
@@ -20,10 +21,30 @@ export function DragHandle({ kind, id, label, onDrop, onChange, onShift }: Props
     const point = document.elementFromPoint(current.x, current.y);
     const ignored = kind === "source" ? point?.closest<HTMLElement>('[data-category-drop="ignored"]') : null;
     const target = ignored || point?.closest<HTMLElement>(kind === "source" ? "[data-source-drop]" : "[data-category-drop]");
-    const targetId = ignored ? "ignored" : target?.dataset[kind === "source" ? "sourceDrop" : "categoryDrop"] || "";
+    let targetId = ignored ? "ignored" : target?.dataset[kind === "source" ? "sourceDrop" : "categoryDrop"] || "";
     const rect = (kind === "source" && !ignored ? target?.querySelector("summary") || target : target)?.getBoundingClientRect();
     const after = rect && (kind === "source" ? current.y > rect.top + rect.height / 2 : current.x > rect.left + rect.width / 2);
-    current.drag = { kind, id, target: targetId, position: after ? "after" : "before" };
+    let position: DropPosition = after ? "after" : "before";
+    if (kind === "source" && !target) {
+      const root = document.getElementById("feeds");
+      const bounds = root?.getBoundingClientRect();
+      const zones = [...(root?.querySelectorAll<HTMLElement>("[data-source-drop]") || [])].map(element => {
+        const rect = element.getBoundingClientRect();
+        const heading = (element.querySelector("summary") || element).getBoundingClientRect();
+        return { id: element.dataset.sourceDrop!, top: rect.top, bottom: rect.bottom, split: heading.top + heading.height / 2 };
+      });
+      const first = zones[0];
+      const toolbar = document.querySelector(".reading-toolbar")?.getBoundingClientRect();
+      const overToolbar = point?.closest(".reading-toolbar");
+      const availableTop = Math.min(first?.top ?? Infinity, toolbar?.bottom ?? Infinity);
+      if (bounds && first && current.x >= bounds.left && current.x <= bounds.right &&
+        current.y >= availableTop - 12 && current.y <= bounds.bottom + 12 &&
+        (!overToolbar || first.top >= (toolbar?.bottom ?? 0) - 1)) {
+        const drop = sourceDropTarget(zones, current.y);
+        if (drop) { targetId = drop.target; position = drop.position; }
+      }
+    }
+    current.drag = { kind, id, target: targetId, position };
     callbacks.current.onChange(current.drag);
   }
   function autoScroll() {

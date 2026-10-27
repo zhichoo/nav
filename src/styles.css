@@ -18,20 +18,20 @@ a:visited { color: var(--accent); }
 .brand-copy { display: flex; flex-direction: column; gap: 4px; }
 .brand-title { display: flex; align-items: baseline; gap: 10px; font-family: Georgia, "Songti SC", "STSong", serif; font-size: 25px; font-weight: 600; line-height: 1.2; letter-spacing: 2px; }
 .web-search-region { padding: 2px 16px 24px; }
-.web-search { display: flex; align-items: center; gap: 6px; width: min(680px, 100%); margin: 0 auto; padding: 6px; border: 1px solid var(--line); border-radius: 11px; background: linear-gradient(180deg, var(--card), var(--paper)); box-shadow: 0 2px 12px #493b2508; transition: border-color .15s, box-shadow .15s; }
+.web-search { display: flex; align-items: center; gap: 6px; width: min(620px, 100%); margin: 0 auto; padding: 5px; border: 1px solid var(--line); border-radius: 10px; background: linear-gradient(180deg, var(--card), var(--paper)); box-shadow: 0 2px 12px #493b2508; transition: border-color .15s, box-shadow .15s; }
 .web-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 9%, transparent); }
-.search-engine { position: relative; display: flex; align-items: center; flex: 0 0 132px; align-self: stretch; margin-right: 4px; border-right: 1px solid var(--line); }
-.web-search select { appearance: none; width: 100%; min-width: 0; height: 38px; padding: 0 27px 0 11px; border: 0; border-radius: 5px; background: transparent; color: var(--ink); font: 12px/1.4 Menlo, Consolas, monospace; }
+.search-engine { position: relative; display: flex; align-items: center; flex: 0 0 124px; align-self: stretch; margin-right: 4px; border-right: 1px solid var(--line); }
+.web-search select { appearance: none; width: 100%; min-width: 0; height: 34px; padding: 0 27px 0 11px; border: 0; border-radius: 5px; background: transparent; color: var(--ink); font: 12px/1.4 Menlo, Consolas, monospace; }
 .search-engine > svg { position: absolute; right: 11px; pointer-events: none; color: var(--muted); }
 .web-search select:focus-visible { outline-offset: -3px; }
 .search-glyph { flex-shrink: 0; margin-left: 4px; color: var(--muted); opacity: .65; }
-.web-search input { flex: 1; width: 0; min-width: 0; height: 38px; padding: 0 4px; border: 0; border-radius: 0; background: transparent; color: var(--ink); font-size: 14px; }
+.web-search input { flex: 1; width: 0; min-width: 0; height: 34px; padding: 0 4px; border: 0; border-radius: 0; background: transparent; color: var(--ink); font-size: 14px; }
 .web-search input:focus-visible { outline: none; }
 .web-search input::placeholder { color: var(--muted); opacity: .7; }
 .web-search input::-webkit-search-cancel-button { appearance: none; }
 .search-clear { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 28px; height: 28px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--muted); }
 .search-clear:hover { background: var(--soft); color: var(--ink); }
-.web-search .search-submit { flex: 0 0 auto; min-height: 38px; padding: 0 11px; border-radius: 6px; white-space: nowrap; }
+.web-search .search-submit { flex: 0 0 auto; min-height: 34px; padding: 0 11px; border-radius: 6px; white-space: nowrap; }
 .web-search .search-submit:not(:disabled):hover { background: var(--soft); }
 .web-search .search-submit:disabled { cursor: default; opacity: .4; }
 .header-links { display: flex; align-items: center; margin-left: auto; font-size: 12px; color: var(--muted); }
@@ -44,7 +44,7 @@ a:visited { color: var(--accent); }
 .text-control:hover { color: var(--accent); }
 .network-notice { padding: 10px; margin: 8px 4px; color: #a34b29; border: 1px dashed currentColor; font-size: 13px; }
 .network-notice button { margin-left: 12px; background: none; border: 0; text-decoration: underline; }
-.feed-section { margin: 0 0 8px; scroll-margin-top: 5px; }
+.feed-section { position: relative; margin: 0 0 8px; scroll-margin-top: 5px; }
 .source-summary { cursor: pointer; padding-left: 8px; padding-right: 8px; text-align: left; }
 .source-heading { min-width: 0; font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
 .source-summary strong { font-size: inherit; }
@@ -181,8 +181,11 @@ details[open] > .source-summary::before { content: "▾"; }
 .source-menu button:hover:not(:disabled), .source-menu button:focus-visible { background: var(--soft); }
 .source-menu button:disabled { opacity: .35; cursor: not-allowed; }
 .source-menu button + button:last-child { border-top: 1px solid var(--line); }
-.feed-section.drop-before, .ignored-row.drop-before { box-shadow: 0 -3px 0 var(--accent); }
-.feed-section.drop-after, .ignored-row.drop-after { box-shadow: 0 3px 0 var(--accent); }
+/* Keep insertion lines inside the target so the sticky toolbar cannot cover the first one. */
+.feed-section.drop-before > .source-summary::after, .feed-section.drop-after > .source-summary::after,
+.ignored-row.drop-before::after, .ignored-row.drop-after::after { content: ""; position: absolute; left: 4px; right: 4px; height: 3px; border-radius: 3px; background: var(--accent); pointer-events: none; z-index: 2; }
+.feed-section.drop-before > .source-summary::after, .ignored-row.drop-before::after { top: 1px; }
+.feed-section.drop-after > .source-summary::after, .ignored-row.drop-after::after { bottom: 1px; }
 .category-chip.drop-before::before, .category-chip.drop-after::after { content: ""; position: absolute; top: 3px; bottom: 3px; width: 2px; background: var(--accent); }
 .category-chip.drop-before::before { left: -3px; }
 .category-chip.drop-after::after { right: -3px; }
@@ -195,7 +198,7 @@ details[open] > .source-summary::before { content: "▾"; }
 .ignored-panel { max-width: 900px; margin: 26px auto 50px; padding: 0 18px; }
 .ignored-panel h2 { font-size: 18px; margin: 0 0 8px; }
 .ignored-panel > p { margin: 0 0 22px; font-size: 12px; color: var(--muted); }
-.ignored-row { display: flex; align-items: center; gap: 12px; padding: 15px 8px; border-bottom: 1px solid var(--line); }
+.ignored-row { position: relative; display: flex; align-items: center; gap: 12px; padding: 15px 8px; border-bottom: 1px solid var(--line); }
 .ignored-row > div { flex: 1; min-width: 0; }
 .ignored-row strong { display: block; font-size: 14px; overflow-wrap: anywhere; }
 .ignored-row div > span { display: block; margin-top: 5px; font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
