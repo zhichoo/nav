@@ -116,6 +116,19 @@ export function parseSource(source, payload) {
         tags: typeof post.category === "string" ? [post.category] : [],
       }];
     });
+  } else if (source.kind === "nodeloc") {
+    if (payload?.topic_list?.filter !== "hot" || !Array.isArray(payload.topic_list.topics)) throw new Error("Invalid NodeLoc hot response");
+    items = payload.topic_list.topics.filter(item => item && Number.isSafeInteger(item.id) && item.id > 0 &&
+      !item.deleted && !item.deleted_at && item.visible !== false && item.can_read_topic !== false && item.archetype !== "private_message").map(item => ({
+      title: typeof item.title === "string" ? item.title : "",
+      url: `https://www.nodeloc.com/t/${item.id}`,
+      publishedAt: typeof item.created_at === "string" ? item.created_at : null,
+      image: typeof item.image_url === "string" ? item.image_url : null,
+      // Discourse posts_count includes the original post; reply_count only counts direct replies.
+      comments: Number.isSafeInteger(item.posts_count) && item.posts_count > 0 ? item.posts_count - 1 : null,
+      discussionUrl: `https://www.nodeloc.com/t/${item.id}`,
+      tags: Array.isArray(item.tags) ? item.tags.flatMap(tag => typeof tag === "string" ? [tag] : typeof tag?.name === "string" ? [tag.name] : []) : [],
+    }));
   } else if (source.kind === "v2ex") {
     if (!Array.isArray(payload)) throw new Error("Invalid V2EX hot response");
     // Keep the official hot-list order; replies are discussions, not votes.

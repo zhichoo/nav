@@ -48,7 +48,7 @@ test("catalog uses independent public feeds, excludes failed candidates and keep
     }
   }
   for (const id of ["politico", "yahoo", "reuters", "reuterslatest"]) assert.ok(!sources.some(source => source.id === id));
-  assert.equal(sources.find(source => source.id === "nodeloc").feed, "https://www.nodeloc.com/latest.rss");
+  assert.equal(sources.find(source => source.id === "nodeloc").feed, "https://www.nodeloc.com/hot.json");
 });
 
 

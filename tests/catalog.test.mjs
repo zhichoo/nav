@@ -12,7 +12,7 @@ test("frontend and backend share a unique public source catalog", () => {
     assert.match(source.id, /^[a-z][a-z0-9-]*$/);
     assert.equal(new URL(source.home).protocol, "https:");
     assert.equal(new URL(source.feed).protocol, "https:");
-    assert.ok(["rss", "dev", "lobsters", "anthropic", "thepaper", "v2ex", "nodeseek"].includes(source.kind));
+    assert.ok(["rss", "dev", "lobsters", "anthropic", "thepaper", "v2ex", "nodeseek", "nodeloc"].includes(source.kind));
   }
 });
 

@@ -287,13 +287,13 @@
   },
   {
     "id": "nodeloc",
-    "name": "NodeLoc",
-    "subtitle": "网络工具、互联网服务、优惠活动与使用经验；含社区推广，非平台背书",
+    "name": "NodeLoc · 热榜",
+    "subtitle": "官方 /hot 热榜，按上游榜单顺序",
     "category": "nomad",
     "icon": "",
     "color": "",
-    "home": "https://www.nodeloc.com",
-    "feed": "https://www.nodeloc.com/latest.rss",
-    "kind": "rss"
+    "home": "https://www.nodeloc.com/hot",
+    "feed": "https://www.nodeloc.com/hot.json",
+    "kind": "nodeloc"
   }
 ]

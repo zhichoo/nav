@@ -232,3 +232,19 @@ test("removed subscriptions stay out of Worker payloads and jobs while HN and As
   assert.ok(calls.includes("https://hnrss.org/ask"));
   assert.ok(calls.includes("https://m.thepaper.cn/channel_25950"));
 });
+
+
+test("Worker discards NodeLoc latest RSS cache and schedules the official hot JSON", async () => {
+  const source = SOURCES.find(item => item.id === "nodeloc");
+  const storage = memoryStorage([["source:nodeloc", {
+    ...source, feed:"https://www.nodeloc.com/latest.rss", kind:"rss",
+    articles:[{title:"Old latest topic"}], updatedAt:new Date(epoch).toISOString(),
+  }]]);
+  const {store,calls}=fixture({storage,sources:[source]});
+  const before=await store.payload();
+  assert.deepEqual(before.sources[0].articles,[]);
+  assert.equal(before.sources[0].status,"loading");
+  await store.refresh();
+  assert.deepEqual(calls,["https://www.nodeloc.com/hot.json"]);
+  assert.equal((await store.payload()).sources[0].status,"live");
+});
