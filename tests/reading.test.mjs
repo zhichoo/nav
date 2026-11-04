@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { allSectionsOpen, expansionLabel, previewArticleCount, toggleSections } from "../src/lib.ts";
 
-test("preview counts fit one fixed-column card row on mobile, tablet and desktop", () => {
+test("desktop preview counts fit one fixed-column card row without stretching final columns", () => {
   assert.equal(previewArticleCount(0), 1);
   assert.equal(previewArticleCount(310), 1);
   assert.equal(previewArticleCount(758), 2);
@@ -10,6 +10,14 @@ test("preview counts fit one fixed-column card row on mobile, tablet and desktop
   assert.equal(previewArticleCount(1530), 6);
   assert.equal(previewArticleCount(1524), 5);
   assert.equal(previewArticleCount((15.625 * 16 + 6) * 3 - 6), 3);
+});
+
+test("mobile previews show six complete articles regardless of width or font size", () => {
+  for (const width of [0, 310, 375, 390, 680]) {
+    for (const fontSize of [16, 20]) assert.equal(previewArticleCount(width, fontSize, true), 6);
+  }
+  assert.equal(previewArticleCount(390, 16, false), 1);
+  assert.equal(previewArticleCount(758, 16, false), 2);
 });
 
 test("expand controls follow the selected article language without mixed labels", () => {

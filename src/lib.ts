@@ -30,8 +30,9 @@ export function savePreference(key: string, value: string) {
   }
 }
 
-// Match the 15.625em grid column minimum and 6px gap; width excludes container padding.
-export function previewArticleCount(width: number, fontSize = 16): number {
+// Desktop previews follow one grid row; phones need several complete articles.
+export function previewArticleCount(width: number, fontSize = 16, mobile = false): number {
+  if (mobile) return 6;
   return Math.max(1, Math.floor((width + 6) / (15.625 * fontSize + 6)));
 }
 
