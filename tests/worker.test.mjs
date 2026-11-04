@@ -12,10 +12,18 @@ const ordinary = SOURCES.find(source => source.id !== "nodeseek");
 const nodeseek = SOURCES.find(source => source.id === "nodeseek");
 function memoryStorage(initial = []) {
   const values = new Map(initial);
+  const readKeys = [];
+  const listCalls = [];
   return {
-    values,
-    async list({ limit = 1000, startAfter = "" } = {}) {
-      return new Map([...values].filter(([key]) => key > startAfter).sort(([a], [b]) => a.localeCompare(b, "en")).slice(0, limit).map(([key, value]) => [key, structuredClone(value)]));
+    values, readKeys, listCalls,
+    async get(keys) {
+      assert.ok(Array.isArray(keys) && keys.length <= 128, "multi-get must respect the 128-key limit");
+      readKeys.push(...keys);
+      return new Map(keys.filter(key => values.has(key)).map(key => [key, structuredClone(values.get(key))]));
+    },
+    async list({ limit = 1000, startAfter = "", prefix = "" } = {}) {
+      listCalls.push({ limit, startAfter, prefix });
+      return new Map([...values].filter(([key]) => key > startAfter && key.startsWith(prefix)).sort(([a], [b]) => a.localeCompare(b, "en")).slice(0, limit).map(([key, value]) => [key, structuredClone(value)]));
     },
     async put(key, value) {
       if (typeof key === "object") for (const [k, v] of Object.entries(key)) values.set(k, structuredClone(v));
@@ -78,12 +86,15 @@ test("cadences persist across Durable Object restarts rather than refetching on 
   const restarted = fixture({ storage: first.storage });
   restarted.setTime(epoch + minute);
   await restarted.store.refresh();
-  assert.deepEqual(restarted.calls, ["https://api.bimg.eu.org/hot.json"]);
-  restarted.setTime(epoch + 5 * minute);
-  await restarted.store.refresh();
-  assert.equal(restarted.calls.length, 3);
+  assert.deepEqual(restarted.calls, []);
+  assert.equal(first.storage.values.get("meta").lastSyncAt, new Date(epoch).toISOString());
+  assert.equal(first.storage.values.get("meta").translationsPrunedOn, "2026-10-26");
   restarted.setTime(epoch + 10 * minute);
   await restarted.store.refresh();
+  assert.deepEqual(restarted.calls, ["https://api.bimg.eu.org/hot.json"]);
+  restarted.setTime(epoch + 30 * minute);
+  await restarted.store.refresh();
+  assert.equal(restarted.calls.length, 4);
   assert.equal(restarted.calls.filter(url => url === ordinary.feed).length, 1);
   assert.equal(restarted.calls.filter(url => url.includes("weekly.json")).length, 0);
 });
@@ -108,7 +119,7 @@ test("failures retain own source/ranking caches and never expose upstream secret
   const first = fixture();
   await first.store.refresh();
   const failed = fixture({storage:first.storage, fetcher:async () => {throw new Error("private credential URL");}});
-  failed.setTime(epoch + 60 * minute);
+  failed.setTime(epoch + 8 * 60 * minute);
   await failed.store.refresh();
   const payload = await failed.store.payload();
   assert.equal(payload.sources[0].status, "stale");
@@ -120,7 +131,7 @@ test("failures retain own source/ranking caches and never expose upstream secret
 test("NodeSeek generation timestamps age and cannot regress or move into the future", async () => {
   const first = fixture();
   await first.store.refresh();
-  first.setTime(epoch + 11 * minute);
+  first.setTime(epoch + 31 * minute);
   assert.equal((await first.store.payload()).sources[1].rankings.realtime.status, "stale");
   for (const upstreamUpdatedAt of [new Date(epoch - minute).toISOString(), new Date(epoch + 90 * minute).toISOString()]) {
     const next = fixture({storage:first.storage, fetcher: async () => ({ articles:[{title:"wrong"}], upstreamUpdatedAt })});
@@ -155,7 +166,7 @@ test("daily translation reservations survive failures/restarts and reset on the 
   await first.store.refresh();
   assert.equal(first.storage.values.get("meta").used, 2);
   const next = fixture({env, translate, storage:first.storage});
-  next.setTime(epoch + minute);
+  next.setTime(epoch + 10 * minute);
   await next.store.refresh();
   assert.equal(requests, 1);
   assert.match((await next.store.payload()).translation.error, /额度/);
@@ -176,12 +187,12 @@ test("provider Retry-After is persisted, and HTTP readers cannot bypass it", asy
   await next.store.payload();
   await next.store.refresh();
   assert.equal(requests, 1);
-  next.setTime(epoch + 5 * minute);
+  next.setTime(epoch + 10 * minute);
   await next.store.refresh();
   assert.equal(requests, 2);
 });
 
-test("storage is paginated so more than 1000 saved translations survive a restart", async () => {
+test("legacy translations beyond 1000 entries are restored on demand without translating them again", async () => {
   const entries = Array.from({length:1500}, (_, i) => [`translation:${String(i).padStart(64,"0")}`, {text:"Saved",createdAt:epoch}]);
   const title = `Title ${ordinary.feed}`;
   entries.push([`translation:${translationKey(title)}`, {text:"Restored",createdAt:epoch}]);
@@ -190,11 +201,106 @@ test("storage is paginated so more than 1000 saved translations survive a restar
   assert.equal((await store.payload()).sources[0].articles[0].translatedTitle, "Restored");
 });
 
+test("cold starts read only configured feeds and active translations, sharing concurrent reads", async () => {
+  const articles = Array.from({ length: 320 }, (_, i) => ({ title: `Visible title ${i}`, url: `https://example.com/${i}` }));
+  const entries = Array.from({ length: 5000 }, (_, i) => [`translation:${translationKey(`Old title ${i}`)}`, { text: "Old translation", createdAt: epoch }]);
+  for (const article of articles) entries.push([`translation:${translationKey(article.title)}`, { text: "Visible translation", createdAt: epoch }]);
+  entries.push([`source:${ordinary.id}`, { ...ordinary, articles, status: "live", updatedAt: new Date(epoch).toISOString() }]);
+  const storage = memoryStorage(entries);
+  const { store } = fixture({ storage, sources: [ordinary] });
+  await store.health();
+  assert.deepEqual(storage.readKeys, ["meta", `source:${ordinary.id}`]);
+  assert.equal(storage.listCalls.length, 0);
+  const payloads = await Promise.all([store.payload(), store.payload(), store.payload()]);
+  assert.ok(payloads.every(payload => payload.sources[0].articles.every(article => article.translatedTitle === "Visible translation")));
+  assert.equal(storage.readKeys.length, 322);
+  assert.equal(storage.listCalls.length, 0);
+  await store.payload();
+  assert.equal(storage.readKeys.length, 322);
+});
+
+test("missing translations are read once, and new feed titles reuse historical translations before billing", async () => {
+  const oldTitle = `Title ${ordinary.feed}`;
+  const nextTitle = "A returning title";
+  const storage = memoryStorage([[`translation:${translationKey(nextTitle)}`, { text: "Historical translation", createdAt: epoch }]]);
+  let requests = 0;
+  const env = { TRANSLATION_API_KEY: "private" };
+  const translate = async (sources, cache) => {
+    requests++;
+    for (const { articles } of sources) for (const { title } of articles) cache[translationKey(title)] = "First translation";
+  };
+  const { store, setTime } = fixture({ storage, sources: [ordinary], env, translate, fetcher: async () => ({ articles: [{ title: requests ? nextTitle : oldTitle }] }) });
+  await store.refresh();
+  assert.equal(requests, 1);
+  setTime(epoch + 30 * minute);
+  await store.refresh();
+  assert.equal(requests, 1);
+  assert.equal((await store.payload()).sources[0].articles[0].translatedTitle, "Historical translation");
+  const cold = fixture({ storage, sources: [ordinary] });
+  await cold.store.payload();
+  const reads = storage.readKeys.length;
+  await cold.store.payload();
+  assert.equal(storage.readKeys.length, reads);
+});
+
+test("history cleanup runs only once per UTC day across restarts and preserves visible old titles", async () => {
+  const title = `Title ${ordinary.feed}`;
+  const key = `translation:${translationKey(title)}`;
+  const entries = Array.from({ length: 5100 }, (_, i) => [`translation:${translationKey(`Old ${i}`)}`, { text: "Old", createdAt: epoch + i }]);
+  entries.push([key, { text: "Still visible", createdAt: epoch - minute }]);
+  const storage = memoryStorage(entries);
+  const first = fixture({ storage, sources: [ordinary] });
+  await first.store.refresh();
+  assert.equal([...storage.values.keys()].filter(key => key.startsWith("translation:")).length, 5000);
+  assert.equal(storage.values.get(key).text, "Still visible");
+  assert.equal(storage.values.get("meta").translationsPrunedOn, "2026-10-26");
+  assert.ok(storage.listCalls.length > 1);
+  assert.ok(storage.listCalls.every(call => call.prefix === "translation:"));
+  const scans = storage.listCalls.length;
+  const restarted = fixture({ storage, sources: [ordinary] });
+  restarted.setTime(epoch + 10 * minute);
+  await restarted.store.refresh();
+  assert.equal(storage.listCalls.length, scans);
+  restarted.setTime(epoch + 24 * 60 * minute);
+  await restarted.store.refresh();
+  assert.ok(storage.listCalls.length > scans);
+  assert.equal(storage.values.get("meta").translationsPrunedOn, "2026-10-27");
+});
+
+test("edge cache coalesces feed URL variants, bypasses health and does not cache failures", async t => {
+  const original = globalThis.caches;
+  t.after(() => { if (original === undefined) delete globalThis.caches; else globalThis.caches = original; });
+  const responses = new Map();
+  globalThis.caches = { default: {
+    async match(request) { return responses.get(request.url)?.clone(); },
+    async put(request, response) { responses.set(request.url, response); },
+  } };
+  let calls = 0;
+  let status = 200;
+  const env = { FEED_STORE: { idFromName: () => "shared", get: () => ({ fetch: async () => { calls++; return Response.json({ ok: true }, { status }); } }) } };
+  const first = await worker.fetch(new Request("https://nav.example/api/feeds?refresh=1"), env);
+  assert.equal(first.headers.get("Cache-Control"), "no-store");
+  assert.equal(responses.get("https://nav.example/api/feeds").headers.get("Cache-Control"), "public, max-age=60");
+  const cached = await worker.fetch(new Request("https://nav.example/api/feeds?refresh=2"), env);
+  assert.equal(cached.headers.get("Cache-Control"), "no-store");
+  assert.equal(calls, 1);
+  await worker.fetch(new Request("https://nav.example/api/health"), env);
+  await worker.fetch(new Request("https://nav.example/api/health"), env);
+  assert.equal(calls, 3);
+  responses.clear();
+  status = 503;
+  assert.equal((await worker.fetch(new Request("https://nav.example/api/feeds"), env)).status, 503);
+  assert.equal(responses.size, 0);
+  globalThis.caches.default.match = async () => { throw new Error("cache unavailable"); };
+  status = 200;
+  assert.equal((await worker.fetch(new Request("https://nav.example/api/feeds"), env)).status, 200);
+});
+
 test("release config has no credentials or proxy, uses SQLite, excludes baseline and avoids public sync routes", async () => {
   const wrangler = JSON.parse(await readFile(new URL("../wrangler.jsonc",import.meta.url),"utf8"));
   assert.equal(wrangler.migrations[0].new_sqlite_classes[0], "NavFeedStore");
   for (const key of ["TRANSLATION_API_KEY","DEEPLX_URL","FEED_PROXY_URL"]) assert.equal(wrangler.vars[key], undefined);
-  assert.deepEqual(wrangler.triggers.crons, ["* * * * *"]);
+  assert.deepEqual(wrangler.triggers.crons, ["*/10 * * * *"]);
   assert.deepEqual(wrangler.routes, [{ pattern: "nav.zhichoo.com", custom_domain: true }]);
   const vite = await readFile(new URL("../vite.config.ts",import.meta.url),"utf8");
   assert.match(vite, /copyPublicDir: false/);

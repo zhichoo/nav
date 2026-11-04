@@ -1,6 +1,6 @@
 import { SOURCES, fetchSourceDetailed } from "./sources.mjs";
 
-export const REFRESH_MS = 10 * 60 * 1000;
+export const REFRESH_MS = 30 * 60 * 1000;
 export function createFeedService({
   sources = SOURCES,
   fetcher = fetchSourceDetailed,

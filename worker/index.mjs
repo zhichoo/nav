@@ -24,13 +24,37 @@ export class NavFeedStore {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const path = new URL(request.url).pathname;
     if (path === "/api" || path.startsWith("/api/")) {
       if (!["/api/feeds", "/api/health"].includes(path)) return json({ error: "Not found" }, 404);
       if (request.method !== "GET") return json({ error: "Method not allowed" }, 405);
-      try { return await sharedStore(env).fetch(request); }
+      const cache = path === "/api/feeds" ? globalThis.caches?.default : null;
+      const cacheKey = new Request(new URL(path, request.url), { method: "GET" });
+      if (cache) {
+        try {
+          const cached = await cache.match(cacheKey);
+          if (cached) {
+            const response = new Response(cached.body, cached);
+            response.headers.set("Cache-Control", "no-store");
+            return response;
+          }
+        } catch { /* A cache failure must not prevent a live read. */ }
+      }
+      let response;
+      try { response = await sharedStore(env).fetch(request); }
       catch { return json({ error: "Service temporarily unavailable" }, 503); }
+      response = new Response(response.body, response);
+      response.headers.set("Cache-Control", "no-store");
+      if (cache && response.ok) {
+        // Cache only at the edge. Browser TTL rules must not keep feed data for hours.
+        const cachedResponse = new Response(response.clone().body, response);
+        cachedResponse.headers.set("Cache-Control", "public, max-age=60");
+        const saving = cache.put(cacheKey, cachedResponse).catch(() => {});
+        if (ctx) ctx.waitUntil(saving);
+        else await saving;
+      }
+      return response;
     }
     return env.ASSETS.fetch(request);
   },

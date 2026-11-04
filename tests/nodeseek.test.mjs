@@ -17,7 +17,7 @@ test("one NodeSeek subscription stays in digital life, with three public ranking
   assert.equal(source.feed, "https://api.bimg.eu.org/daily.json");
   assert.equal(source.kind, "nodeseek");
   assert.deepEqual(RANKINGS.map(item => item.id), ["realtime", "daily", "weekly"]);
-  assert.deepEqual(RANKINGS.map(item => item.refreshMs), [60000, 300000, 3600000]);
+  assert.deepEqual(RANKINGS.map(item => item.refreshMs), [600000, 1800000, 7200000]);
 });
 test("ranking parsing preserves upstream order, canonical links, replies and fixed 24-item limit", () => {
   const articles = parseSource(source, payload());
@@ -62,15 +62,15 @@ test("background sync respects each cadence and shares in-flight work across vis
   await Promise.all([first,second]);
   assert.equal(service.updating, false);
   await service.refresh(); assert.equal(calls.length, 3);
-  time += 60000;
-  const minute = service.refresh();
+  time += RANKINGS[0].refreshMs;
+  const realtime = service.refresh();
   assert.equal(calls.length, 4); assert.equal(calls.at(-1), RANKINGS[0].feed);
-  release.splice(0).forEach(resolve => resolve()); await minute;
-  time = now + 300000;
-  const five = service.refresh(); assert.equal(calls.length, 6);
+  release.splice(0).forEach(resolve => resolve()); await realtime;
+  time = now + RANKINGS[1].refreshMs;
+  const daily = service.refresh(); assert.equal(calls.length, 6);
   assert.deepEqual(calls.slice(-2), [RANKINGS[0].feed,RANKINGS[1].feed]);
-  release.splice(0).forEach(resolve => resolve()); await five;
-  time = now + 3600000;
+  release.splice(0).forEach(resolve => resolve()); await daily;
+  time = now + RANKINGS[2].refreshMs;
   const hour = service.refresh(); assert.equal(calls.length, 9);
   release.splice(0).forEach(resolve => resolve()); await hour;
 });
@@ -91,11 +91,11 @@ test("each ranking fails independently and retains only its own previous list", 
   assert.equal(saves, 6);
 });
 test("old upstream timestamps become CACHED even when HTTP succeeds", async () => {
-  const service = createNodeSeekRankings({clock:()=>now,fetcher:async item=>result(item, now - 4 * 3600000)});
+  const service = createNodeSeekRankings({clock:()=>now,fetcher:async item=>result(item, now - 7 * 3600000)});
   await service.refresh();
   for (const state of Object.values(service.snapshot())) {
     assert.equal(state.status, "stale"); assert.equal(state.errorCode, "STALE");
-    assert.equal(state.updatedAt, new Date(now - 4 * 3600000).toISOString());
+    assert.equal(state.updatedAt, new Date(now - 7 * 3600000).toISOString());
     assert.equal(state.checkedAt, new Date(now).toISOString());
   }
 });

@@ -129,20 +129,33 @@ export default function App() {
   const [revision, setRevision] = useState(0);
   const [, tick] = useState(0);
   useEffect(() => {
-    const controller = new AbortController(); let timer: number;
+    const controller = new AbortController(); let timer: number; let loading = false;
     async function load() {
+      if (controller.signal.aborted || loading) return;
+      if (document.hidden) {
+        timer = window.setTimeout(() => void load(), 5 * 60000);
+        return;
+      }
+      loading = true;
       let pending = false;
       try {
-        const response = await fetch("/api/feeds", { signal: controller.signal });
+        const response = await fetch("/api/feeds", { signal: controller.signal, cache: "no-store" });
         if (!response.ok) throw new Error();
         const data: FeedResponse = await response.json();
         if (!Array.isArray(data.sources) || controller.signal.aborted) return;
         setSources(data.sources); setTranslation(data.translation); setNetworkError(false); setLoaded(true);
         pending = data.updating || data.translation.updating;
       } catch { if (!controller.signal.aborted) setNetworkError(true); }
-      finally { if (!controller.signal.aborted) timer = window.setTimeout(() => void load(), pending ? 2500 : 60000); }
+      finally {
+        loading = false;
+        if (!controller.signal.aborted) timer = window.setTimeout(() => void load(), pending ? 30000 : 5 * 60000);
+      }
     }
-    void load(); return () => { controller.abort(); window.clearTimeout(timer); };
+    const resume = () => {
+      if (!document.hidden) { window.clearTimeout(timer); void load(); }
+    };
+    document.addEventListener("visibilitychange", resume);
+    void load(); return () => { controller.abort(); window.clearTimeout(timer); document.removeEventListener("visibilitychange", resume); };
   }, [revision]);
   useEffect(() => { const timer = window.setInterval(() => tick(value => value + 1), 60000); return () => window.clearInterval(timer); }, []);
   const personalAllowed = loaded && !original && category !== "ignored" && (!translation.enabled || Boolean(translation.error));

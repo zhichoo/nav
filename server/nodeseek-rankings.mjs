@@ -1,6 +1,6 @@
 import RANKINGS from "../shared/nodeseek-rankings.json" with { type: "json" };
 import { SOURCES, fetchSourceDetailed } from "./sources.mjs";
-export const NODESEEK_REFRESH_MS = 60000;
+export const NODESEEK_REFRESH_MS = Math.min(...RANKINGS.map(ranking => ranking.refreshMs));
 
 export function createNodeSeekRankings({
   source = SOURCES.find(item => item.id === "nodeseek"),

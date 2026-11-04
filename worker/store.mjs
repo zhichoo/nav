@@ -4,6 +4,7 @@ import RANKINGS from "../shared/nodeseek-rankings.json" with { type: "json" };
 import { applyTranslations, isTranslationEnabled, translateMissing, translationKey } from "../server/translation.mjs";
 
 const MINUTE = 60000;
+const SYNC_MS = 10 * MINUTE;
 const MAX_TRANSLATIONS = 5000;
 const bounded = (value, fallback, max) => Math.min(max, Math.max(1, Math.floor(Number(value) || fallback)));
 const empty = source => ({ ...source, articles: [], updatedAt: null, checkedAt: null, status: "loading", error: null });
@@ -19,32 +20,82 @@ export function createWorkerStore(storage, env, {
   const states = new Map();
   const translations = {};
   const savedTranslations = new Map();
+  const loadedTranslations = new Set();
+  let loadingTranslations;
   let meta = {};
   let pending;
   let translating = false;
   const ready = (async () => {
-    const entries = new Map();
-    let startAfter;
-    for (;;) {
-      const page = await storage.list({ limit: 1000, ...(startAfter ? { startAfter } : {}) });
-      for (const entry of page) entries.set(...entry);
-      if (page.size < 1000) break;
-      startAfter = [...page.keys()].at(-1);
-    }
+    // Read only the configured feeds and budget. Historical translations are loaded on demand.
+    const entries = await storage.get(["meta", ...jobs.map(job => job.key)]);
     meta = entries.get("meta") || {};
     for (const job of jobs) {
       const saved = entries.get(job.key);
       states.set(job.key, saved?.feed === job.source.feed && saved?.kind === job.source.kind && Array.isArray(saved.articles)
         ? { ...saved, ...job.source } : empty(job.source));
     }
-    for (const [key, entry] of entries) {
-      if (key.startsWith("translation:") && typeof entry?.text === "string") {
+  })();
+  function activeTranslationKeys() {
+    return new Set(allArticles().flatMap(source => source.articles.map(article => translationKey(article.title))));
+  }
+  async function loadTranslations() {
+    // Serialize readers so simultaneous requests do not repeat the same storage reads.
+    const previous = loadingTranslations;
+    const task = (async () => {
+      await previous;
+      const active = activeTranslationKeys();
+      for (const hash of loadedTranslations) {
+        if (active.has(hash)) continue;
+        loadedTranslations.delete(hash);
+        savedTranslations.delete(hash);
+        delete translations[hash];
+      }
+      const hashes = [...active].filter(hash => !loadedTranslations.has(hash));
+      // Durable Object multi-get accepts at most 128 keys per call.
+      for (let offset = 0; offset < hashes.length; offset += 128) {
+        const batch = hashes.slice(offset, offset + 128);
+        const entries = await storage.get(batch.map(hash => `translation:${hash}`));
+        for (const hash of batch) {
+          const entry = entries.get(`translation:${hash}`);
+          if (typeof entry?.text === "string") {
+            translations[hash] = entry.text;
+            savedTranslations.set(hash, entry);
+          }
+          loadedTranslations.add(hash);
+        }
+      }
+    })();
+    loadingTranslations = task;
+    try { await task; }
+    finally { if (loadingTranslations === task) loadingTranslations = null; }
+  }
+  async function pruneTranslations() {
+    const day = new Date(clock()).toISOString().slice(0, 10);
+    if (meta.translationsPrunedOn === day) return;
+    const entries = [];
+    let startAfter;
+    for (;;) {
+      const page = await storage.list({ prefix: "translation:", limit: 1000, ...(startAfter ? { startAfter } : {}) });
+      for (const [key, entry] of page) entries.push({ key, createdAt: entry?.createdAt || 0 });
+      if (page.size < 1000) break;
+      startAfter = [...page.keys()].at(-1);
+    }
+    // Keep visible titles first; prune old history once per UTC day, never during a public read.
+    const active = activeTranslationKeys();
+    entries.sort((a, b) => Number(active.has(a.key.slice(12))) - Number(active.has(b.key.slice(12))) || a.createdAt - b.createdAt);
+    const excess = entries.slice(0, Math.max(0, entries.length - MAX_TRANSLATIONS));
+    for (let offset = 0; offset < excess.length; offset += 128) {
+      const batch = excess.slice(offset, offset + 128);
+      await storage.delete(batch.map(entry => entry.key));
+      for (const { key } of batch) {
         const hash = key.slice(12);
-        translations[hash] = entry.text;
-        savedTranslations.set(hash, entry);
+        loadedTranslations.delete(hash);
+        savedTranslations.delete(hash);
+        delete translations[hash];
       }
     }
-  })();
+    meta.translationsPrunedOn = day;
+  }
   function snapshot() {
     const visible = key => {
       const state = states.get(key);
@@ -70,11 +121,6 @@ export function createWorkerStore(storage, env, {
     if (Object.keys(changes).length) {
       await storage.put(changes);
       for (const [key, entry] of Object.entries(changes)) savedTranslations.set(key.slice(12), entry);
-    }
-    const excess = [...savedTranslations].sort((a, b) => a[1].createdAt - b[1].createdAt).slice(0, Math.max(0, savedTranslations.size - MAX_TRANSLATIONS));
-    if (excess.length) {
-      await storage.delete(excess.map(([hash]) => `translation:${hash}`));
-      for (const [hash] of excess) { savedTranslations.delete(hash); delete translations[hash]; }
     }
   }
   const config = {
@@ -108,6 +154,9 @@ export function createWorkerStore(storage, env, {
   }
   async function run() {
     await ready;
+    // Cron changes can take time to propagate; duplicate ticks must not reset the cadence.
+    const lastSync = Date.parse(meta.lastSyncAt);
+    if (Number.isFinite(lastSync) && clock() - lastSync < SYNC_MS) return;
     const due = jobs.filter(job => {
       const checked = Date.parse(states.get(job.key).checkedAt);
       return !Number.isFinite(checked) || clock() - checked >= job.interval;
@@ -131,7 +180,9 @@ export function createWorkerStore(storage, env, {
         states.set(job.key, next);
       }
     }));
+    await loadTranslations();
     await translateBatch();
+    await pruneTranslations();
     meta.lastSyncAt = new Date(clock()).toISOString();
     await storage.put("meta", meta);
   }
@@ -143,6 +194,7 @@ export function createWorkerStore(storage, env, {
     },
     async payload() {
       await ready;
+      await loadTranslations();
       const translated = applyTranslations(snapshot(), translations).map(source => {
         if (source.rankings) source.rankings = Object.fromEntries(Object.entries(source.rankings).map(([id, rank]) => [id, applyTranslations([rank], translations)[0]]));
         const { kind: _kind, ...safe } = source;
