@@ -45,14 +45,14 @@ function ArticleCard({ article, index, original, showImages }: {
   </article>;
 }
 
-function FeedSection({ source, original, showImages, mobile, categoryName, closed, onToggle, tools, dropClass, ranking, onRankingChange }: {
+function FeedSection({ source, original, showImages, mobile, sorting, categoryName, closed, onToggle, tools, dropClass, ranking, onRankingChange }: {
   source: Source; original: boolean; showImages: boolean; mobile: boolean; categoryName?: string; ranking?: NodeSeekRanking; onRankingChange: (ranking: NodeSeekRanking) => void;
-  closed: boolean; onToggle: (id: string, closed: boolean) => void; tools: ReactNode; dropClass: string;
+  closed: boolean; sorting: boolean; onToggle: (id: string, closed: boolean) => void; tools: ReactNode; dropClass: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   useEffect(() => { setExpanded(false); }, [ranking]);
   const feedRef = useRef<HTMLDivElement>(null);
-  const [rowSize, setRowSize] = useState(1);
+  const [rowSize, setRowSize] = useState(() => mobile ? 6 : 1);
   useEffect(() => {
     const feed = feedRef.current;
     if (!feed) return;
@@ -69,11 +69,11 @@ function FeedSection({ source, original, showImages, mobile, categoryName, close
     if (expanded && feedRef.current && feedRef.current.getBoundingClientRect().top < 0) document.getElementById(source.id)?.scrollIntoView({ block: "start" });
     setExpanded(!expanded);
   }
-  const status = { live: "LIVE", stale: "CACHED", error: "OFFLINE", loading: "CONNECTING" }[source.status];
-  return <details className={`sites feed-section ${dropClass}`} data-source-drop={source.id} id={source.id} open={!closed}
-    onToggle={event => { if (event.currentTarget.open !== !closed) onToggle(source.id, !event.currentTarget.open); }}>
-    <summary className="stick source-summary"><span className="source-heading"><strong>{source.name}</strong>{ranking && <NodeSeekTabs value={ranking} onChange={onRankingChange} />}<span className="source-address"> - <a className="source-home" href={source.home} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>{new URL(source.home).hostname.replace(/^www\./, "")}</a></span>{categoryName && <span className="source-category"> · {categoryName}</span>}</span>
-      <span className={`source-status status-${source.status}`} title={[ranking ? "第三方热榜：bimg.eu.org（非官方），时间为榜单生成时间" : "", source.updatedAt ? `${ranking ? "榜单更新" : "最近同步"}：${new Date(source.updatedAt).toLocaleString()}` : "尚无成功同步", source.transport === "proxy" ? "通过本机代理采集" : "直连采集", source.error || ""].filter(Boolean).join("\n")}>{status}<span className="source-count"> / {source.articles.length} 篇</span></span>
+  const status = { live: "", stale: source.error ? "更新失败" : "待更新", error: "暂无内容", loading: "同步中" }[source.status];
+  return <details className={`sites feed-section ${dropClass}`} data-source-drop={source.id} id={source.id} open={!sorting && !closed}
+    onToggle={event => { if (!sorting && event.currentTarget.open !== !closed) onToggle(source.id, !event.currentTarget.open); }}>
+    <summary className="stick source-summary" onClick={event => { if (sorting) event.preventDefault(); }}><span className="source-heading"><strong>{source.name}</strong>{ranking && <NodeSeekTabs value={ranking} onChange={onRankingChange} />}<span className="source-address"> - <a className="source-home" href={source.home} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()}>{new URL(source.home).hostname.replace(/^www\./, "")}</a></span>{categoryName && <span className="source-category"> · {categoryName}</span>}</span>
+      {status && <span className={`source-status status-${source.status}`} title={[ranking ? "第三方热榜：bimg.eu.org（非官方），时间为榜单生成时间" : "", source.updatedAt ? `${ranking ? "榜单更新" : "最近同步"}：${new Date(source.updatedAt).toLocaleString()}` : "尚无成功同步", source.transport === "proxy" ? "通过本机代理采集" : "直连采集", source.error || ""].filter(Boolean).join("\n")}>{status}<span className="source-count"> / {source.articles.length} 篇</span></span>}
       {tools}
     </summary>
     <div className={`feed-content${expanded ? " is-expanded" : hasMore ? " has-preview" : ""}${!source.articles.length ? " is-empty" : ""}`} ref={feedRef} id={`feed-${source.id}`}>
@@ -114,6 +114,13 @@ export default function App() {
     catch { return parseOrganization(null); }
   });
   const [drag, setDrag] = useState<DragState | null>(null);
+  const [sorting, setSorting] = useState(false);
+  useEffect(() => {
+    if (!sorting) return;
+    const finish = (event: KeyboardEvent) => { if (event.key === "Escape") { setSorting(false); setDrag(null); } };
+    window.addEventListener("keydown", finish);
+    return () => window.removeEventListener("keydown", finish);
+  }, [sorting]);
   const [notice, setNotice] = useState<{ text: string; undoId?: string; restore?: boolean } | null>(null);
   const [storageFailed, setStorageFailed] = useState(false);
   useEffect(() => { setStorageFailed(!savePreference("signal:organization:v1", JSON.stringify(organization))); }, [organization]);
@@ -127,11 +134,10 @@ export default function App() {
   const [ranking, setRanking] = useState(() => nodeSeekRanking(readPreference("nav:nodeseek-ranking", "daily")));
   function changeRanking(value: NodeSeekRanking) { setRanking(value); savePreference("nav:nodeseek-ranking", value); }
   const [desktopImages, setDesktopImages] = useState(() => readPreference("signal:images", "show") !== "hide");
-  const [mobileImages, setMobileImages] = useState(() => readPreference("signal:images:mobile", "hide") === "show");
-  const showImages = mobile ? mobileImages : desktopImages;
+  const showImages = !mobile && desktopImages;
   function changeImages(show: boolean) {
-    if (mobile) setMobileImages(show); else setDesktopImages(show);
-    savePreference(mobile ? "signal:images:mobile" : "signal:images", show ? "show" : "hide");
+    setDesktopImages(show);
+    savePreference("signal:images", show ? "show" : "hide");
   }
   const [original, setOriginal] = useState(() => readPreference("signal:language", "translated") === "original");
   const [about, setAbout] = useState(false);
@@ -229,6 +235,7 @@ export default function App() {
     setNotice({ text: "分类顺序已调整" });
   }
   function handleDrop(value: DragState) {
+    if (!sorting) return;
     if (value.kind === "category") {
       if (![value.id, value.target].every(id => categories.includes(id) && !["all", "ignored"].includes(id))) return;
       setOrganization(current => ({ ...current, categoryOrder: moveCategory(categories, value.id, value.target, value.position) }));
@@ -240,7 +247,7 @@ export default function App() {
     }
   }
   const dropClass = (kind: DragState["kind"], id: string) => drag?.kind === kind && drag.target === id && drag.id !== id ? `drop-${drag.position}` : "";
-  return <PersonalTranslationContext.Provider value={{ translator: personal, allowed: personalAllowed }}><div className={`signal-shell${compact ? " compact" : ""}${drag ? " is-organizing" : ""}`} id="top">
+  return <PersonalTranslationContext.Provider value={{ translator: personal, allowed: personalAllowed }}><div className={`signal-shell${compact ? " compact" : ""}${sorting ? " sorting-mode" : ""}${drag ? " is-organizing" : ""}`} id="top">
     <a className="skip-link" href="#feeds">跳到文章</a>
     <header className="header site-header"><div className="masthead"><h1 className="site-name"><span className="wordmark"><span className="brand-copy"><span className="brand-title">Nav</span></span></span></h1><div className="header-links"><button className="text-control" onClick={() => setSettings(true)} aria-label="翻译设置">[设置]</button></div></div><WebSearch /></header>
     <div className="reading-toolbar">
@@ -248,10 +255,10 @@ export default function App() {
         const item = CATEGORIES.find(entry => entry.id === id);
         const ignored = id === "ignored";
         return <CategoryTab key={id} id={id} label={ignored ? `【忽略】${ignoredCount ? ` ${ignoredCount}` : ""}` : item?.name || id}
-          selected={category === id} className={`${dropClass("category", id)}${ignored && category !== "ignored" && drag?.kind === "source" ? " ignore-drop-target" : ""}${ignored && drag?.target === "ignored" ? " drop-active" : ""}`}
+          selected={category === id} sorting={sorting} className={`${dropClass("category", id)}${ignored && category !== "ignored" && drag?.kind === "source" ? " ignore-drop-target" : ""}${ignored && drag?.target === "ignored" ? " drop-active" : ""}`}
           onSelect={() => selectCategory(id as Category | "ignored")} onDrop={handleDrop} onChange={setDrag} onShift={direction => moveCategoryByKey(id, direction)} />;
       })}</nav>
-      <div className="reading-controls"><button className="text-control" aria-pressed={compact} onClick={() => { setCompact(!compact); savePreference("signal:layout", compact ? "grid" : "compact"); }} title="切换卡片 / 紧凑列表">{compact ? "[ 卡片 ]" : "[ 列表 ]"}</button>{category !== "ignored" && <button className="text-control" onClick={toggleAllSections} disabled={!visibleSourceIds.length} aria-expanded={allOpen} aria-controls="feeds" aria-label={`${allOpen ? "收起" : "展开"}当前分类全部来源`}>{allOpen ? "[ 收起 ]" : "[ 展开 ]"}</button>}<div className="language-switch image-switch" role="group" aria-label="文章配图"><button aria-pressed={showImages} onClick={() => changeImages(true)}>有图</button><button aria-pressed={!showImages} onClick={() => changeImages(false)}>无图</button></div><div className="language-switch" role="group" aria-label="文章语言"><button aria-pressed={!original} onClick={() => { setOriginal(false); savePreference("signal:language", "translated"); }}>中文翻译</button><button aria-pressed={original} onClick={() => { setOriginal(true); savePreference("signal:language", "original"); }}>原文</button></div></div>
+      <div className="reading-controls"><button className="text-control" aria-pressed={compact} onClick={() => { setCompact(!compact); savePreference("signal:layout", compact ? "grid" : "compact"); }} title="切换卡片 / 紧凑列表">{compact ? "[ 卡片 ]" : "[ 列表 ]"}</button>{category !== "ignored" && <button className="text-control" onClick={toggleAllSections} disabled={sorting || !visibleSourceIds.length} aria-expanded={!sorting && allOpen} aria-controls="feeds" aria-label={`${allOpen ? "收起" : "展开"}当前分类全部来源`}>{allOpen ? "[ 收起 ]" : "[ 展开 ]"}</button>}<button className="text-control sort-control" aria-pressed={sorting} onClick={() => { setSorting(!sorting); setDrag(null); }} title={sorting ? "完成排序，恢复阅读" : "拖动调整来源和分类顺序"}>{sorting ? "[ 完成 ]" : "[ 排序 ]"}</button><div className="language-switch image-switch" role="group" aria-label="文章配图"><button aria-pressed={showImages} onClick={() => changeImages(true)}>有图</button><button aria-pressed={!showImages} onClick={() => changeImages(false)}>无图</button></div><div className="language-switch" role="group" aria-label="文章语言"><button aria-pressed={!original} onClick={() => { setOriginal(false); savePreference("signal:language", "translated"); }}>中文翻译</button><button aria-pressed={original} onClick={() => { setOriginal(true); savePreference("signal:language", "original"); }}>原文</button></div></div>
     </div>
     {networkError && <p className="network-notice" role="alert">无法连接聚合服务，已有内容仍可阅读。<button onClick={() => setRevision(value => value + 1)}>重试</button></p>}
     {translation.error && <p className="network-notice" role="status">{personalStatus.active && !personalStatus.paused ? "站点翻译暂不可用，个人接口将按需补译；已有译文仍可阅读。" : "站点翻译暂不可用，已有译文仍可阅读。"}<button onClick={() => setSettings(true)}>翻译设置</button></p>}
@@ -262,11 +269,11 @@ export default function App() {
       {category === "ignored" ? <section className="ignored-panel" aria-labelledby="ignored-heading">
         <h2 id="ignored-heading">忽略的来源</h2>
         {visibleSources.map(source => <div className={`ignored-row ${dropClass("source", source.id)}`} data-source-drop={source.id} key={source.id}>
-          <DragHandle kind="source" id={source.id} label={source.name} onDrop={handleDrop} onChange={setDrag} onShift={direction => moveSource(source.id, direction)} />
+          {sorting && <DragHandle kind="source" id={source.id} label={source.name} onDrop={handleDrop} onChange={setDrag} onShift={direction => moveSource(source.id, direction)} />}
           <div><strong>{source.name}</strong><span>{CATEGORIES.find(item => item.id === source.category)?.name} · <a href={source.home} target="_blank" rel="noopener noreferrer">{new URL(source.home).hostname.replace(/^www\./, "")}</a></span></div>
           <button className="restore-source" onClick={() => toggleIgnored(source.id, false)} aria-label={`恢复${source.name}`}>恢复</button>
         </div>)}
-      </section> : visibleSources.map((source, index) => <FeedSection key={source.id} source={selectNodeSeekRanking(source, ranking)} ranking={source.id === "nodeseek" ? ranking : undefined} onRankingChange={changeRanking} original={original} showImages={showImages} mobile={mobile} categoryName={category === "all" ? CATEGORIES.find(item => item.id === source.category)?.name : undefined} closed={closed.includes(source.id)} onToggle={toggleClosed} dropClass={dropClass("source", source.id)} tools={<SourceTools id={source.id} name={source.name} canMoveUp={index > 0} canMoveDown={index < visibleSources.length - 1} onMove={direction => moveSource(source.id, direction)} onIgnore={() => toggleIgnored(source.id, true)} onDrop={handleDrop} onDrag={setDrag} />} />)}
+      </section> : visibleSources.map((source, index) => <FeedSection key={source.id} source={selectNodeSeekRanking(source, ranking)} ranking={source.id === "nodeseek" ? ranking : undefined} onRankingChange={changeRanking} original={original} showImages={showImages} mobile={mobile} sorting={sorting} categoryName={category === "all" ? CATEGORIES.find(item => item.id === source.category)?.name : undefined} closed={closed.includes(source.id)} onToggle={toggleClosed} dropClass={dropClass("source", source.id)} tools={<SourceTools id={source.id} name={source.name} sorting={sorting} canMoveUp={index > 0} canMoveDown={index < visibleSources.length - 1} onMove={direction => moveSource(source.id, direction)} onIgnore={() => toggleIgnored(source.id, true)} onDrop={handleDrop} onDrag={setDrag} />} />)}
       {category !== "ignored" && visibleSources.length === 0 && <div className="ignored-empty">这个分类的来源已被忽略。<button className="text-control" onClick={() => selectCategory("ignored")}>前往【忽略】恢复</button></div>}
     </main>
     <footer className="footer site-footer"><span className="footer-mark">Nav</span><nav className="footer-actions" aria-label="页尾导航"><button className="footer-about" onClick={() => setAbout(true)}>关于</button><span aria-hidden="true">/</span><a className="back-top" href="#top">↑ 回到顶部</a></nav></footer>

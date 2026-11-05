@@ -127,7 +127,7 @@ test("each category is one native button, with fixed ends and keyboard reorderin
   assert.match(component, /addEventListener\("touchmove", touchMove, \{ passive: false \}\)/);
   assert.match(component, /if \(gesture.move[\s\S]*event.preventDefault/);
   assert.match(component, /removeEventListener\("touchmove", touchMove\)/);
-  assert.match(component, /addEventListener\("scroll", cancel/);
+  assert.match(component, /addEventListener\("scroll", scroll/);
   assert.match(component, /event.key === "Escape"/);
   assert.match(css, /touch-action: pan-y pinch-zoom/);
   assert.doesNotMatch(css, /category-chip > button|category-tabs \.drag-handle/);

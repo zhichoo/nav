@@ -87,7 +87,7 @@ test("all origins use one light rounded appearance regardless of legacy theme pr
 test("bulk collapse sits beside layout and controls only visible source sections", async () => {
   const app = await read("src/App.tsx");
   assert.match(app, /\[ 列表 \][\s\S]*?<\/button>\{category !== "ignored" && <button className="text-control" onClick=\{toggleAllSections\}/);
-  assert.match(app, /disabled=\{!visibleSourceIds.length\} aria-expanded=\{allOpen\} aria-controls="feeds"/);
+  assert.match(app, /disabled=\{sorting \|\| !visibleSourceIds.length\} aria-expanded=\{!sorting && allOpen\} aria-controls="feeds"/);
   assert.match(app, /toggleSections\(current, visibleSourceIds\)/);
   assert.match(app, /savePreference\("signal:closed", JSON.stringify\(next\)\)/);
 });

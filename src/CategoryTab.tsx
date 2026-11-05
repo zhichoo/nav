@@ -4,20 +4,35 @@ import { createCategoryGesture } from "./category-gesture";
 import type { DragState } from "./DragHandle";
 
 type Props = {
-  id: string; label: string; selected: boolean; className: string;
+  id: string; label: string; selected: boolean; className: string; sorting: boolean;
   onSelect: () => void; onDrop: (drag: DragState) => void;
   onChange: (drag: DragState | null) => void; onShift: (direction: -1 | 1) => void;
 };
-export function CategoryTab({ id, label, selected, className, onSelect, onDrop, onChange, onShift }: Props) {
-  const movable = id !== "all" && id !== "ignored";
+export function CategoryTab({ id, label, selected, className, sorting, onSelect, onDrop, onChange, onShift }: Props) {
+  const movable = sorting && id !== "all" && id !== "ignored";
   const ref = useRef<HTMLButtonElement>(null);
   const drag = useRef<DragState | null>(null);
   const callbacks = useRef({ onDrop, onChange });
   callbacks.current = { onDrop, onChange };
   const [dragging, setDragging] = useState(false);
+  useEffect(() => {
+    const button = ref.current;
+    const nav = button?.parentElement;
+    if (!selected || !button || !nav || nav.scrollWidth <= nav.clientWidth) return;
+    const bounds = nav.getBoundingClientRect();
+    const tab = button.getBoundingClientRect();
+    if (tab.left < bounds.left) nav.scrollLeft += tab.left - bounds.left - 4;
+    else if (tab.right > bounds.right) nav.scrollLeft += tab.right - bounds.right + 4;
+  }, [selected]);
   const [gesture] = useState(() => createCategoryGesture({
     onStart: () => { setDragging(true); ref.current?.focus({ preventScroll: true }); },
     onMove: ({ x, y }) => {
+      const nav = ref.current?.parentElement;
+      const bounds = nav?.getBoundingClientRect();
+      if (nav && bounds && y >= bounds.top && y <= bounds.bottom) {
+        if (x < bounds.left + 32) nav.scrollLeft -= 12;
+        else if (x > bounds.right - 32) nav.scrollLeft += 12;
+      }
       const target = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-category-drop]");
       const targetId = target?.dataset.categoryDrop || "";
       const rect = target?.getBoundingClientRect();
@@ -41,7 +56,7 @@ export function CategoryTab({ id, label, selected, className, onSelect, onDrop, 
       if (event.touches.length !== 1) { cancel(); return; }
       const touch = event.changedTouches[0];
       touchId = touch.identifier;
-      gesture.start({ x: touch.clientX, y: touch.clientY }, true);
+      gesture.start({ x: touch.clientX, y: touch.clientY }, false);
     };
     const touchMove = (event: TouchEvent) => {
       const touch = Array.from(event.changedTouches).find(item => item.identifier === touchId);
@@ -56,12 +71,13 @@ export function CategoryTab({ id, label, selected, className, onSelect, onDrop, 
     };
     const keyDown = (event: KeyboardEvent) => { if (event.key === "Escape") cancel(); };
     const visibility = () => { if (document.hidden) cancel(); };
-    // Non-passive touchmove only blocks scrolling after a deliberate long press.
+    const scroll = (event: Event) => { if (event.target !== button.parentElement) cancel(); };
+    // Sorting mode reserves category touches for dragging; reading mode keeps native scrolling.
     button.addEventListener("touchstart", touchStart, { passive: true });
     button.addEventListener("touchmove", touchMove, { passive: false });
     button.addEventListener("touchend", touchEnd, { passive: false });
     button.addEventListener("touchcancel", cancel);
-    window.addEventListener("scroll", cancel, { passive: true, capture: true });
+    window.addEventListener("scroll", scroll, { passive: true, capture: true });
     window.addEventListener("blur", cancel);
     document.addEventListener("keydown", keyDown);
     document.addEventListener("visibilitychange", visibility);
@@ -70,7 +86,7 @@ export function CategoryTab({ id, label, selected, className, onSelect, onDrop, 
       button.removeEventListener("touchmove", touchMove);
       button.removeEventListener("touchend", touchEnd);
       button.removeEventListener("touchcancel", cancel);
-      window.removeEventListener("scroll", cancel, true);
+      window.removeEventListener("scroll", scroll, true);
       window.removeEventListener("blur", cancel);
       document.removeEventListener("keydown", keyDown);
       document.removeEventListener("visibilitychange", visibility);
@@ -84,7 +100,7 @@ export function CategoryTab({ id, label, selected, className, onSelect, onDrop, 
   }
   return <button ref={ref} type="button" data-category-drop={id} aria-pressed={selected}
     className={`category-chip${movable ? " category-movable" : ""}${dragging ? " is-dragging" : ""} ${className}`}
-    title={movable ? "点击切换；拖动或长按排序；Alt + 左右方向键调整顺序" : undefined}
+    title={movable ? "拖动排序；点击切换；Alt + 左右方向键调整顺序" : undefined}
     aria-keyshortcuts={movable ? "Alt+ArrowLeft Alt+ArrowRight" : undefined}
     onClick={event => { if (event.detail > 0 && gesture.consumeClick()) { event.preventDefault(); return; } onSelect(); }}
     onPointerDown={event => {
