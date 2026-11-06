@@ -14,7 +14,7 @@ import {
   translateMissing,
 } from "../server/translation.mjs";
 
-const source = SOURCES[0];
+const source = SOURCES.find(item => item.id === "hn");
 const rss = `<rss xmlns:hn="https://hnrss.org"><channel><item><title><![CDATA[Tools &amp; ideas]]></title><link>https://example.com/post</link><pubDate>Tue, 20 Oct 2026 12:00:00 GMT</pubDate><hn:score>123</hn:score><hn:comments>7</hn:comments><comments>https://news.ycombinator.com/item?id=1</comments></item><item><title>Duplicate</title><link>https://example.com/post</link></item><item><title>Unsafe</title><link>javascript:alert(1)</link></item></channel></rss>`;
 test("RSS parsing normalizes entities, dates, scores and deduplicates safe URLs", () => {
   const articles = parseSource(source, rss);
@@ -27,7 +27,7 @@ test("RSS parsing normalizes entities, dates, scores and deduplicates safe URLs"
 });
 test("Atom handles alternate links and single entry", () => {
   const articles = parseSource(
-    SOURCES[1],
+    SOURCES.find(item => item.id === "producthunt"),
     `<feed><entry><title>A product</title><link rel="self" href="https://example.com/feed/1"/><link rel="alternate" href="https://example.com/product"/><updated>2026-10-20T00:00:00Z</updated><category term="tools"/></entry></feed>`,
   );
   assert.equal(articles[0].url, "https://example.com/product");
@@ -45,7 +45,7 @@ test("unsafe URLs and invalid dates are not trusted", () => {
   assert.equal(cleanText("&#x1F600; &quot;test&quot;"), '😀 "test"');
 });
 test("JSON adapters map DEV and Lobsters fields", () => {
-  const [dev] = parseSource(SOURCES[3], [
+  const [dev] = parseSource(SOURCES.find(item => item.id === "dev"), [
     {
       title: "Article",
       url: "https://dev.to/me/article",
@@ -57,7 +57,7 @@ test("JSON adapters map DEV and Lobsters fields", () => {
   ]);
   assert.equal(dev.points, 42);
   assert.deepEqual(dev.tags, ["webdev"]);
-  const [lobster] = parseSource(SOURCES[2], [
+  const [lobster] = parseSource(SOURCES.find(item => item.id === "lobsters"), [
     {
       title: "Link",
       url: "https://example.com",

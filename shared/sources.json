@@ -11,26 +11,15 @@
     "kind": "rss"
   },
   {
-    "id": "producthunt",
-    "name": "Product Hunt",
-    "subtitle": "发现下一个好产品",
-    "category": "product",
-    "icon": "P",
-    "color": "#e58878",
-    "home": "https://www.producthunt.com",
-    "feed": "https://www.producthunt.com/feed",
+    "id": "arstechnica",
+    "name": "Ars Technica",
+    "subtitle": "科技背后，不止头条",
+    "category": "tech",
+    "icon": "a",
+    "color": "#e6ad72",
+    "home": "https://arstechnica.com",
+    "feed": "https://feeds.arstechnica.com/arstechnica/index",
     "kind": "rss"
-  },
-  {
-    "id": "lobsters",
-    "name": "Lobsters",
-    "subtitle": "程序员的另一片自留地",
-    "category": "dev",
-    "icon": "L",
-    "color": "#d9a6ad",
-    "home": "https://lobste.rs",
-    "feed": "https://lobste.rs/hottest.json",
-    "kind": "lobsters"
   },
   {
     "id": "dev",
@@ -44,15 +33,48 @@
     "kind": "dev"
   },
   {
-    "id": "arstechnica",
-    "name": "Ars Technica",
-    "subtitle": "科技背后，不止头条",
-    "category": "tech",
-    "icon": "a",
-    "color": "#e6ad72",
-    "home": "https://arstechnica.com",
-    "feed": "https://feeds.arstechnica.com/arstechnica/index",
+    "id": "latentspace",
+    "name": "Latent Space",
+    "subtitle": "AI 工程、模型与创业访谈",
+    "category": "ai",
+    "icon": "",
+    "color": "",
+    "home": "https://www.latent.space",
+    "feed": "https://www.latent.space/feed",
     "kind": "rss"
+  },
+  {
+    "id": "nodeseek",
+    "name": "NodeSeek",
+    "subtitle": "互联网服务与优惠情报；第三方 bimg 热榜，非官方榜单或平台背书",
+    "category": "nomad",
+    "icon": "",
+    "color": "",
+    "home": "https://www.nodeseek.com",
+    "feed": "https://api.bimg.eu.org/daily.json",
+    "kind": "nodeseek"
+  },
+  {
+    "id": "v2ex",
+    "name": "V2EX · 今日热议",
+    "subtitle": "官方热门主题，按热榜顺序阅读",
+    "category": "nomad",
+    "icon": "",
+    "color": "",
+    "home": "https://www.v2ex.com",
+    "feed": "https://www.v2ex.com/api/topics/hot.json",
+    "kind": "v2ex"
+  },
+  {
+    "id": "nodeloc",
+    "name": "NodeLoc · 热榜",
+    "subtitle": "官方 /hot 热榜，按上游榜单顺序",
+    "category": "nomad",
+    "icon": "",
+    "color": "",
+    "home": "https://www.nodeloc.com/hot",
+    "feed": "https://www.nodeloc.com/hot.json",
+    "kind": "nodeloc"
   },
   {
     "id": "openai",
@@ -66,25 +88,25 @@
     "kind": "rss"
   },
   {
-    "id": "simonwillison",
-    "name": "Simon Willison",
-    "subtitle": "LLM 工程、AI 工具与开发实践",
+    "id": "anthropic",
+    "name": "Anthropic News",
+    "subtitle": "官方模型、产品与公司动态",
     "category": "ai",
     "icon": "",
     "color": "",
-    "home": "https://simonwillison.net",
-    "feed": "https://simonwillison.net/atom/everything/",
-    "kind": "rss"
+    "home": "https://www.anthropic.com/news",
+    "feed": "https://www.anthropic.com/news",
+    "kind": "anthropic"
   },
   {
-    "id": "latentspace",
-    "name": "Latent Space",
-    "subtitle": "AI 工程、模型与创业访谈",
+    "id": "huggingface",
+    "name": "Hugging Face Blog",
+    "subtitle": "开源模型、数据集与 AI 工具",
     "category": "ai",
     "icon": "",
     "color": "",
-    "home": "https://www.latent.space",
-    "feed": "https://www.latent.space/feed",
+    "home": "https://huggingface.co/blog",
+    "feed": "https://huggingface.co/blog/feed.xml",
     "kind": "rss"
   },
   {
@@ -110,91 +132,14 @@
     "kind": "rss"
   },
   {
-    "id": "cloudflare",
-    "name": "Cloudflare Blog",
-    "subtitle": "网络、边缘计算与基础设施",
-    "category": "vps",
-    "icon": "",
-    "color": "",
-    "home": "https://blog.cloudflare.com",
-    "feed": "https://blog.cloudflare.com/rss/",
-    "kind": "rss"
-  },
-  {
-    "id": "github",
-    "name": "GitHub Blog",
-    "subtitle": "开源生态与软件工程",
-    "category": "dev",
-    "icon": "",
-    "color": "",
-    "home": "https://github.blog",
-    "feed": "https://github.blog/feed/",
-    "kind": "rss"
-  },
-  {
-    "id": "ruanyifeng",
-    "name": "阮一峰 · 科技爱好者周刊",
-    "subtitle": "科技、开发工具与每周见闻",
-    "category": "weekly",
-    "icon": "",
-    "color": "",
-    "home": "https://www.ruanyifeng.com/blog/weekly/index.html",
-    "feed": "https://www.ruanyifeng.com/blog/atom.xml",
-    "kind": "rss"
-  },
-  {
-    "id": "rrorange",
-    "name": "大橘和朋友们的周刊",
-    "subtitle": "个人周刊、阅读与互联网见闻",
-    "category": "weekly",
-    "icon": "",
-    "color": "",
-    "home": "https://rrorangeandfriends.de",
-    "feed": "https://rrorangeandfriends.de/feed.xml",
-    "kind": "rss"
-  },
-  {
-    "id": "v2ex",
-    "name": "V2EX · 今日热议",
-    "subtitle": "官方热门主题，按热榜顺序阅读",
-    "category": "dev",
-    "icon": "",
-    "color": "",
-    "home": "https://www.v2ex.com",
-    "feed": "https://www.v2ex.com/api/topics/hot.json",
-    "kind": "v2ex"
-  },
-  {
-    "id": "anthropic",
-    "name": "Anthropic News",
-    "subtitle": "官方模型、产品与公司动态",
-    "category": "ai",
-    "icon": "",
-    "color": "",
-    "home": "https://www.anthropic.com/news",
-    "feed": "https://www.anthropic.com/news",
-    "kind": "anthropic"
-  },
-  {
-    "id": "deepmind",
-    "name": "Google DeepMind",
-    "subtitle": "AI 研究、模型与科学进展",
-    "category": "ai",
-    "icon": "",
-    "color": "",
-    "home": "https://deepmind.google/discover/blog/",
-    "feed": "https://deepmind.google/blog/rss.xml",
-    "kind": "rss"
-  },
-  {
-    "id": "huggingface",
-    "name": "Hugging Face Blog",
-    "subtitle": "开源模型、数据集与 AI 工具",
-    "category": "ai",
-    "icon": "",
-    "color": "",
-    "home": "https://huggingface.co/blog",
-    "feed": "https://huggingface.co/blog/feed.xml",
+    "id": "producthunt",
+    "name": "Product Hunt",
+    "subtitle": "发现下一个好产品",
+    "category": "product",
+    "icon": "P",
+    "color": "#e58878",
+    "home": "https://www.producthunt.com",
+    "feed": "https://www.producthunt.com/feed",
     "kind": "rss"
   },
   {
@@ -220,6 +165,50 @@
     "kind": "rss"
   },
   {
+    "id": "thepaper",
+    "name": "澎湃新闻 · 时事",
+    "subtitle": "澎湃官方时事频道，直接读取公开页面",
+    "category": "news",
+    "icon": "",
+    "color": "",
+    "home": "https://m.thepaper.cn/channel_25950",
+    "feed": "https://m.thepaper.cn/channel_25950",
+    "kind": "thepaper"
+  },
+  {
+    "id": "askhn",
+    "name": "Ask HN",
+    "subtitle": "Hacker News 社区问答",
+    "category": "dev",
+    "icon": "",
+    "color": "",
+    "home": "https://news.ycombinator.com/ask",
+    "feed": "https://hnrss.org/ask",
+    "kind": "rss"
+  },
+  {
+    "id": "github",
+    "name": "GitHub Blog",
+    "subtitle": "开源生态与软件工程",
+    "category": "dev",
+    "icon": "",
+    "color": "",
+    "home": "https://github.blog",
+    "feed": "https://github.blog/feed/",
+    "kind": "rss"
+  },
+  {
+    "id": "ft",
+    "name": "金融时报",
+    "subtitle": "Financial Times 官方首页订阅",
+    "category": "news",
+    "icon": "",
+    "color": "",
+    "home": "https://www.ft.com",
+    "feed": "https://www.ft.com/rss/home",
+    "kind": "rss"
+  },
+  {
     "id": "guardian",
     "name": "The Guardian World",
     "subtitle": "国际新闻与全球议题",
@@ -228,6 +217,28 @@
     "color": "",
     "home": "https://www.theguardian.com/world",
     "feed": "https://www.theguardian.com/world/rss",
+    "kind": "rss"
+  },
+  {
+    "id": "ruanyifeng",
+    "name": "阮一峰 · 科技爱好者周刊",
+    "subtitle": "科技、开发工具与每周见闻",
+    "category": "weekly",
+    "icon": "",
+    "color": "",
+    "home": "https://www.ruanyifeng.com/blog/weekly/index.html",
+    "feed": "https://www.ruanyifeng.com/blog/atom.xml",
+    "kind": "rss"
+  },
+  {
+    "id": "rrorange",
+    "name": "大橘和朋友们的周刊",
+    "subtitle": "个人周刊、阅读与互联网见闻",
+    "category": "weekly",
+    "icon": "",
+    "color": "",
+    "home": "https://rrorangeandfriends.de",
+    "feed": "https://rrorangeandfriends.de/feed.xml",
     "kind": "rss"
   },
   {
@@ -242,58 +253,47 @@
     "kind": "rss"
   },
   {
-    "id": "askhn",
-    "name": "Ask HN",
-    "subtitle": "Hacker News 社区问答",
+    "id": "lobsters",
+    "name": "Lobsters",
+    "subtitle": "程序员的另一片自留地",
     "category": "dev",
+    "icon": "L",
+    "color": "#d9a6ad",
+    "home": "https://lobste.rs",
+    "feed": "https://lobste.rs/hottest.json",
+    "kind": "lobsters"
+  },
+  {
+    "id": "simonwillison",
+    "name": "Simon Willison",
+    "subtitle": "LLM 工程、AI 工具与开发实践",
+    "category": "ai",
     "icon": "",
     "color": "",
-    "home": "https://news.ycombinator.com/ask",
-    "feed": "https://hnrss.org/ask",
+    "home": "https://simonwillison.net",
+    "feed": "https://simonwillison.net/atom/everything/",
     "kind": "rss"
   },
   {
-    "id": "thepaper",
-    "name": "澎湃新闻 · 时事",
-    "subtitle": "澎湃官方时事频道，直接读取公开页面",
-    "category": "news",
+    "id": "cloudflare",
+    "name": "Cloudflare Blog",
+    "subtitle": "网络、边缘计算与基础设施",
+    "category": "vps",
     "icon": "",
     "color": "",
-    "home": "https://m.thepaper.cn/channel_25950",
-    "feed": "https://m.thepaper.cn/channel_25950",
-    "kind": "thepaper"
-  },
-  {
-    "id": "ft",
-    "name": "金融时报",
-    "subtitle": "Financial Times 官方首页订阅",
-    "category": "news",
-    "icon": "",
-    "color": "",
-    "home": "https://www.ft.com",
-    "feed": "https://www.ft.com/rss/home",
+    "home": "https://blog.cloudflare.com",
+    "feed": "https://blog.cloudflare.com/rss/",
     "kind": "rss"
   },
   {
-    "id": "nodeseek",
-    "name": "NodeSeek",
-    "subtitle": "互联网服务与优惠情报；第三方 bimg 热榜，非官方榜单或平台背书",
-    "category": "nomad",
+    "id": "deepmind",
+    "name": "Google DeepMind",
+    "subtitle": "AI 研究、模型与科学进展",
+    "category": "ai",
     "icon": "",
     "color": "",
-    "home": "https://www.nodeseek.com",
-    "feed": "https://api.bimg.eu.org/daily.json",
-    "kind": "nodeseek"
-  },
-  {
-    "id": "nodeloc",
-    "name": "NodeLoc · 热榜",
-    "subtitle": "官方 /hot 热榜，按上游榜单顺序",
-    "category": "nomad",
-    "icon": "",
-    "color": "",
-    "home": "https://www.nodeloc.com/hot",
-    "feed": "https://www.nodeloc.com/hot.json",
-    "kind": "nodeloc"
+    "home": "https://deepmind.google/discover/blog/",
+    "feed": "https://deepmind.google/blog/rss.xml",
+    "kind": "rss"
   }
 ]

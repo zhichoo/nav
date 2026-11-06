@@ -37,7 +37,7 @@ test("weekly feeds retain multiple entries, not the cancelled one-issue limit", 
 test("catalog uses independent public feeds, excludes failed candidates and keeps existing categories", () => {
   assert.equal(new Set(sources.map(source => source.id)).size, sources.length);
   assert.equal(new Set(sources.map(source => source.feed)).size, sources.length);
-  assert.deepEqual(CATEGORIES.map(item => item.id), ["all", "ai", "vps", "dev", "nomad", "news", "weekly", "tech", "product"]);
+  assert.deepEqual(CATEGORIES.map(item => item.id), ["all", "ai", "nomad", "news", "vps", "dev", "tech", "product", "weekly"]);
   for (const source of sources) {
     for (const value of [source.feed, source.home]) {
       const url = new URL(value);
@@ -56,7 +56,7 @@ test("requested removals are unsubscribed, and News keeps three complementary ch
   const removed = ["economist", "phys", "sciencealert", "bigthink", "showhn", "stackoverflow", "hnnew", "nomadgate", "nomadicmatt", "nomadicnotes", "nature", "bbc", "npr", "axios", "sky", "nytimes", "atlantic", "newyorker", "economistnew", "bloomberg", "wsj", "businessinsider", "googlenews", "news", "finance", "china"];
   for (const id of removed) assert.ok(!sources.some(source => source.id === id), id);
   assert.deepEqual(sources.filter(source => source.category === "news").map(source => source.id).sort(), ["ft", "guardian", "thepaper"]);
-  assert.deepEqual(sources.filter(source => source.category === "nomad").map(source => source.id), ["nodeseek", "nodeloc"]);
+  assert.deepEqual(sources.filter(source => source.category === "nomad").map(source => source.id), ["nodeseek", "v2ex", "nodeloc"]);
   assert.deepEqual(sources.filter(source => source.category === "tech").map(source => source.id), ["hn", "arstechnica", "solidot"]);
   assert.equal(CATEGORIES.find(category => category.id === "nomad").name, "数字生活");
 });

@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { DragHandle } from "./DragHandle";
-import type { DragState } from "./DragHandle";
 
 type Props = {
-  id: string; name: string; canMoveUp: boolean; canMoveDown: boolean; sorting: boolean;
+  name: string; canMoveUp: boolean; canMoveDown: boolean; sorting: boolean;
   onMove: (direction: -1 | 1) => void; onIgnore: () => void;
-  onDrop: (drag: DragState) => void; onDrag: (drag: DragState | null) => void;
 };
-export function SourceTools({ id, name, canMoveUp, canMoveDown, sorting, onMove, onIgnore, onDrop, onDrag }: Props) {
+export function SourceTools({ name, canMoveUp, canMoveDown, sorting, onMove, onIgnore }: Props) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLSpanElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -19,7 +17,7 @@ export function SourceTools({ id, name, canMoveUp, canMoveDown, sorting, onMove,
     return () => document.removeEventListener("pointerdown", close);
   }, [open]);
   return <span className="source-tools" ref={root} onClick={event => event.stopPropagation()}>
-    {sorting && <DragHandle kind="source" id={id} label={name} onShift={onMove} onDrop={onDrop} onChange={onDrag} />}
+    {sorting && <DragHandle label={name} onShift={onMove} />}
     <button className="source-menu-trigger" ref={trigger} aria-label={`管理${name}`} aria-haspopup="menu" aria-expanded={open} onClick={event => { event.preventDefault(); setOpen(!open); }}>···</button>
     {open && <span className="source-menu" role="menu" aria-label={`${name}来源操作`} onKeyDown={event => {
       event.stopPropagation();

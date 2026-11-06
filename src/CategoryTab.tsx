@@ -56,7 +56,7 @@ export function CategoryTab({ id, label, selected, className, sorting, onSelect,
       if (event.touches.length !== 1) { cancel(); return; }
       const touch = event.changedTouches[0];
       touchId = touch.identifier;
-      gesture.start({ x: touch.clientX, y: touch.clientY }, false);
+      gesture.start({ x: touch.clientX, y: touch.clientY }, true);
     };
     const touchMove = (event: TouchEvent) => {
       const touch = Array.from(event.changedTouches).find(item => item.identifier === touchId);
@@ -72,7 +72,7 @@ export function CategoryTab({ id, label, selected, className, sorting, onSelect,
     const keyDown = (event: KeyboardEvent) => { if (event.key === "Escape") cancel(); };
     const visibility = () => { if (document.hidden) cancel(); };
     const scroll = (event: Event) => { if (event.target !== button.parentElement) cancel(); };
-    // Sorting mode reserves category touches for dragging; reading mode keeps native scrolling.
+    // A short swipe scrolls; only a deliberate hold reserves the touch for sorting.
     button.addEventListener("touchstart", touchStart, { passive: true });
     button.addEventListener("touchmove", touchMove, { passive: false });
     button.addEventListener("touchend", touchEnd, { passive: false });
@@ -100,7 +100,7 @@ export function CategoryTab({ id, label, selected, className, sorting, onSelect,
   }
   return <button ref={ref} type="button" data-category-drop={id} aria-pressed={selected}
     className={`category-chip${movable ? " category-movable" : ""}${dragging ? " is-dragging" : ""} ${className}`}
-    title={movable ? "拖动排序；点击切换；Alt + 左右方向键调整顺序" : undefined}
+    title={movable ? "拖动或长按排序；点击切换；Alt + 左右方向键调整顺序" : undefined}
     aria-keyshortcuts={movable ? "Alt+ArrowLeft Alt+ArrowRight" : undefined}
     onClick={event => { if (event.detail > 0 && gesture.consumeClick()) { event.preventDefault(); return; } onSelect(); }}
     onPointerDown={event => {
