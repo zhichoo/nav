@@ -1,4 +1,5 @@
-# Optional, for local Wrangler only. Copy to .dev.vars and add your own key.
+# Optional external provider credentials for local Wrangler only.
+# Workers AI uses the AI binding and needs no translation key; inference consumes account quota.
 TRANSLATION_API_KEY=""
 # DeepLX alternative: set TRANSLATION_PROVIDER=deeplx and supply this secret.
 # DEEPLX_URL="https://your-deeplx.example/translate"

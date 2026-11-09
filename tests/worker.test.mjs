@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { createWorkerStore } from "../worker/store.mjs";
 import worker from "../worker/index.mjs";
 import { SOURCES } from "../server/sources.mjs";
-import { translationKey } from "../server/translation.mjs";
+import { translationKey, workersAIReservation, WORKERS_AI_MODEL } from "../server/translation.mjs";
 
 const minute = 60000;
 const epoch = Date.parse("2026-10-26T00:00:00Z");
@@ -192,6 +192,53 @@ test("provider Retry-After is persisted, and HTTP readers cannot bypass it", asy
   assert.equal(requests, 2);
 });
 
+test("Workers AI reserves its full request estimate before inference; failure and restart do not refund it", async () => {
+  let requests = 0;
+  const title = `Title ${ordinary.feed}`;
+  const reservation = workersAIReservation([title]);
+  const env = { TRANSLATION_PROVIDER: "workers-ai", TRANSLATION_MODEL: WORKERS_AI_MODEL, TRANSLATION_AI_DAILY_NEURONS: String(reservation), AI: { async run() {
+    requests++;
+    assert.equal(storage.values.get("meta").aiReservedNeurons, reservation);
+    throw new Error("upstream failure");
+  } } };
+  const storage = memoryStorage();
+  const first = fixture({ env, storage, sources: [ordinary] });
+  await first.store.refresh();
+  assert.equal(requests, 1);
+  const next = fixture({ env, storage, sources: [ordinary] });
+  next.setTime(epoch + 30 * minute);
+  await next.store.refresh();
+  assert.equal(requests, 1);
+  assert.match((await next.store.payload()).translation.error, /免费翻译预算/);
+  next.setTime(epoch + 24 * 60 * minute);
+  await next.store.refresh();
+  assert.equal(requests, 2);
+  assert.equal(storage.values.get("meta").aiReservedNeurons, reservation);
+});
+
+test("Chinese-only content spends no translation budget", async () => {
+  const source = { ...ordinary, id: "chinese" };
+  const ai = { async run() { assert.fail("Chinese titles must not invoke inference"); } };
+  const { store, storage } = fixture({ env: { TRANSLATION_PROVIDER: "workers-ai", TRANSLATION_MODEL: WORKERS_AI_MODEL, AI: ai }, sources: [source], fetcher: async () => ({ articles: [{ title: "科技爱好者周刊：本周值得关注的消息" }] }) });
+  await store.refresh();
+  assert.equal(storage.values.get("meta").used, 0);
+  assert.equal(storage.values.get("meta").aiReservedNeurons, 0);
+  assert.equal((await store.payload()).translation.error, null);
+});
+
+test("Workers AI cannot raise its 8000-Neuron cap or silently switch to an unbudgeted model", async () => {
+  for (const model of [WORKERS_AI_MODEL, "unbudgeted-model"]) {
+    const storage = memoryStorage([["meta", { day: "2026-10-26", used: 0, aiReservedNeurons: 7999 }]]);
+    const { store } = fixture({ storage, sources: [ordinary], env: {
+      TRANSLATION_PROVIDER: "workers-ai", TRANSLATION_MODEL: model, TRANSLATION_AI_DAILY_NEURONS: "999999",
+      AI: { async run() { assert.fail("No unbudgeted model call is allowed"); } },
+    } });
+    await store.refresh();
+    assert.equal(storage.values.get("meta").aiReservedNeurons, 7999);
+    assert.match((await store.payload()).translation.error, model === WORKERS_AI_MODEL ? /免费翻译预算/ : /模型配置/);
+  }
+});
+
 test("legacy translations beyond 1000 entries are restored on demand without translating them again", async () => {
   const entries = Array.from({length:1500}, (_, i) => [`translation:${String(i).padStart(64,"0")}`, {text:"Saved",createdAt:epoch}]);
   const title = `Title ${ordinary.feed}`;
@@ -299,6 +346,9 @@ test("edge cache coalesces feed URL variants, bypasses health and does not cache
 test("release config has no credentials or proxy, uses SQLite, excludes baseline and avoids public sync routes", async () => {
   const wrangler = JSON.parse(await readFile(new URL("../wrangler.jsonc",import.meta.url),"utf8"));
   assert.equal(wrangler.migrations[0].new_sqlite_classes[0], "NavFeedStore");
+  assert.equal(wrangler.ai.binding, "AI");
+  assert.equal(wrangler.vars.TRANSLATION_PROVIDER, "workers-ai");
+  assert.equal(wrangler.vars.TRANSLATION_MODEL, WORKERS_AI_MODEL);
   for (const key of ["TRANSLATION_API_KEY","DEEPLX_URL","FEED_PROXY_URL"]) assert.equal(wrangler.vars[key], undefined);
   assert.deepEqual(wrangler.triggers.crons, ["*/10 * * * *"]);
   assert.deepEqual(wrangler.routes, [{ pattern: "nav.zhichoo.com", custom_domain: true }]);

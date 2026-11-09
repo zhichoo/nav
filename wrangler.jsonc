@@ -20,6 +20,9 @@
   "alias": {
     "undici": "./worker/no-proxy.mjs"
   },
+  "ai": {
+    "binding": "AI"
+  },
   "durable_objects": {
     "bindings": [
       {
@@ -42,13 +45,13 @@
     ]
   },
   "vars": {
-    "TRANSLATION_PROVIDER": "openai",
-    "TRANSLATION_BASE_URL": "https://tokenhub.tencentmaas.com/v1",
-    "TRANSLATION_MODEL": "hy-mt2-pro",
+    "TRANSLATION_PROVIDER": "workers-ai",
+    "TRANSLATION_MODEL": "@cf/zai-org/glm-4.7-flash",
     "TRANSLATION_FORMAT": "numbered",
     "TRANSLATION_BATCH_SIZE": "16",
     "TRANSLATION_CHUNK_SIZE": "16",
-    "TRANSLATION_DAILY_LIMIT": "1000"
+    "TRANSLATION_DAILY_LIMIT": "1000",
+    "TRANSLATION_AI_DAILY_NEURONS": "8000"
   },
   "routes": [
     {

@@ -27,7 +27,7 @@ npm run dev
 ## 配置与部署
 
 - 来源：编辑 `shared/sources.json`，前后端共享配置。
-- 站点翻译：Node 模式参考 `.env.example`；Workers 模式使用 Secret，详见 [部署文档](DEPLOY.md)。支持 OpenAI 兼容接口和 DeepLX，调用可能产生费用。
+- 站点翻译：Workers 默认使用 Cloudflare Workers AI，带日预算；Node 模式参考 `.env.example`。也支持 OpenAI 兼容接口和 DeepLX，详见 [部署文档](DEPLOY.md)。
 - 个人翻译：在页面 `[设置]` 中配置；接口与密钥保存在本机浏览器，直连需支持 CORS，请使用独立、低额度的密钥。
 - 检查：`npm run check`；Cloudflare 部署预检：`npm run cf:check`。
 - Cloudflare 部署步骤、域名与额度说明：[DEPLOY.md](DEPLOY.md)。

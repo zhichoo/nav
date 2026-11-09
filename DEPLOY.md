@@ -1,6 +1,6 @@
 # Cloudflare Workers 部署
 
-正式域名配置为 https://nav.zhichoo.com ，保留 https://nav.lzhichao1212.workers.dev 备用入口。后台每 10 分钟调度与 SQLite Durable Object 已创建，站点翻译凭据仅保存为 Worker Secret。GitHub 仓库按用户要求公开；保留 noindex。公开代码与部署均不代表第三方内容获得重新授权。
+正式域名配置为 https://nav.zhichoo.com ，保留 https://nav.lzhichao1212.workers.dev 备用入口。后台每 10 分钟调度与 SQLite Durable Object 已创建，站点翻译默认使用 Workers AI 绑定。GitHub 仓库按用户要求公开；保留 noindex。公开代码与部署均不代表第三方内容获得重新授权。
 
 ## 架构
 
@@ -9,7 +9,7 @@
 - Cron 每 10 分钟调用内部同步入口；普通来源每 30 分钟、NodeSeek 实时 / 日榜 / 周榜分别每 10 / 30 / 120 分钟更新。各来源的检查时间持久化，同步入口额外按上次成功时间限制为至少间隔 10 分钟；Cron 传播期间的旧调度和重复触发会跳过，冷启动不会重置限频。最多 4 路采集，失败保留该来源自己的缓存。
 - 对象冷启动仅按键读取配置中的订阅与预算；资讯请求按当前文章标题批量读取译文，不扫描全部历史。`/api/feeds` 成功响应在边缘缓存 60 秒，浏览器按 `no-store` 获取，避免区域浏览器缓存时间把数据延长到数小时；健康检查不加载译文。页面每 5 分钟获取一次资讯，后台标签页暂停获取，切回时补取。
 - 读者只读取缓存，没有公开的强制刷新或翻译接口。忽略列表、排序、图片与语言偏好仍各自保存在浏览器，不影响后台更新。
-- 站点翻译由服务端 Secret 配置；个人接口依旧由浏览器直接访问，不经 Workers 转发，Key 只保存在读者自己的浏览器。
+- 站点翻译由后台 Workers AI 绑定调用；如选择外部供应商，凭据使用服务端 Secret。个人接口依旧由浏览器直接访问，不经 Workers 转发，Key 只保存在读者自己的浏览器。
 - Workers 只直接连接订阅源，不使用本机 `127.0.0.1` 代理。`FEED_PROXY_URL` 仅对原 Node 后端有效；云端受限的来源保持缓存 / 故障状态，不绕过验证。
 
 ## 本地检查
@@ -39,9 +39,9 @@ curl 'http://127.0.0.1:8787/cdn-cgi/local/scheduled?cron=*/10+*+*+*+*'
 ## 首次上线
 
 1. 登录你的 Cloudflare 账号：`npx wrangler login`。
-2. 确认 `wrangler.jsonc` 中 Worker 名称和翻译配置。默认使用 OpenAI-compatible 协议、腾讯 TokenHub 地址、`hy-mt2-pro` 模型和编号格式；不会提交或自动复制本机 `.env` 中的 Key。
-3. 部署：`npm run cf:deploy`。首次创建 SQLite Durable Object。无 Secret 时正常提供原文，不调用站点翻译。
-4. 在 Cloudflare 控制台为 Worker 添加 Secret `TRANSLATION_API_KEY`，或运行：
+2. 确认 `wrangler.jsonc` 中 Worker 名称和翻译配置。默认 `TRANSLATION_PROVIDER=workers-ai`，使用 `AI` 绑定和 `@cf/zai-org/glm-4.7-flash`；无需翻译 API Key，不会把部署凭据发送给浏览器。
+3. 部署：`npm run cf:deploy`。首次创建 SQLite Durable Object，后续 Cron 自动补译；已有持久化译文保持不变。
+4. 如需使用外部 OpenAI-compatible 服务，将 provider 改为 `openai`，配置 `TRANSLATION_BASE_URL`、`TRANSLATION_MODEL` 和 `TRANSLATION_FORMAT`，并添加 Secret `TRANSLATION_API_KEY`：
 
 ```sh
 npx wrangler secret put TRANSLATION_API_KEY
@@ -75,13 +75,15 @@ Key 通过交互输入，不写入 `wrangler.jsonc`、GitHub、浏览器代码�
 - Build command：`npm run build`。
 - Deploy command：`npx wrangler deploy`。
 - Root directory：仓库根目录；Node 版本选 24。
-- 站点翻译 Key 添加到 Worker 的运行时 Secrets，不要放进仓库或构建变量中的 `VITE_*`。
+- 默认 Workers AI 无需翻译 Key；外部供应商的 Key 添加到 Worker 的运行时 Secrets，不要放进仓库或构建变量中的 `VITE_*`。
 
 Cloudflare 导入页的 Worker 名称要与 `wrangler.jsonc` 的 `name` 一致。域名、账号和运行时 Secrets 仍由你在 Cloudflare 中配置。
 
 ## 翻译预算和运行边界
 
-- Workers 默认每 10 分钟最多处理 16 个缺失标题，每 UTC 日最多尝试 1000 个；调整 `TRANSLATION_BATCH_SIZE`（最大 24）和 `TRANSLATION_DAILY_LIMIT`（最大 10000）。这只是标题尝试次数上限，不是人民币 / Token 的精确计费上限，仍应在服务商设置消费限额。
+- Workers 默认每 10 分钟最多处理 16 个缺失标题，每 UTC 日最多尝试 1000 个；调整 `TRANSLATION_BATCH_SIZE`（Workers AI 最大 16，其他服务最大 24）和 `TRANSLATION_DAILY_LIMIT`（最大 10000）。主要为中文的标题直接显示原文，不发送翻译请求。
+- Workers AI 使用固定的 GLM-4.7-Flash，关闭思考，输出最多 2048 tokens；编号缺失、重复、数量不符或输出截断时拒绝缓存。`TRANSLATION_AI_DAILY_NEURONS` 默认且最多为 8000，按输入字节估算上限、模板余量和完整输出上限预留，失败不返还；这是保守的本站预算，不是账户全局精确用量。更换模型必须同步修改代码中的费率和测试。
+- Cloudflare 当前每天提供账户共享的 10000 Neurons 免费额度。其他 Worker / 手动测试也消耗同一账户额度；付费账户超过免费额度可能收费，应在 Cloudflare 控制台监测总用量。本站预算不能约束账户里的其他应用，模型定价变更也需要复核。
 - 请求前持久化预留额度，即使失败也计入，以避免重启 / 错误循环超额；尊重供应商 `Retry-After`。成功译文独立持久化；历史缓存每 UTC 日在后台清理一次，优先保留当前文章，其余按时间淘汰至 5000 条。当天新生成的译文在下次清理前仍保留，普通访问不触发全量扫描。
 - 三个 NodeSeek 榜单都参与翻译，按原文标题去重。日额度耗尽 / 服务异常时保留已有译文，其余显示原文；读者可自行配置个人接口。
 - SQLite Durable Objects 支持 Free 计划，但 Workers / 对象请求量、运行时长、存储读写和翻译服务各有额度，不能承诺多人使用完全免费。正式上线后观察实际 Cloudflare 用量和源站可达性。

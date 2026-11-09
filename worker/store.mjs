@@ -1,7 +1,7 @@
 import { SOURCES, fetchSourceDetailed } from "../server/sources.mjs";
 import { REFRESH_MS } from "../server/feed-service.mjs";
 import RANKINGS from "../shared/nodeseek-rankings.json" with { type: "json" };
-import { applyTranslations, isTranslationEnabled, translateMissing, translationKey } from "../server/translation.mjs";
+import { applyTranslations, isTranslationEnabled, missingTranslationTitles, translateMissing, translationKey, workersAIReservation, WORKERS_AI_MODEL } from "../server/translation.mjs";
 
 const MINUTE = 60000;
 const SYNC_MS = 10 * MINUTE;
@@ -127,17 +127,26 @@ export function createWorkerStore(storage, env, {
     provider: env.TRANSLATION_PROVIDER || "openai", format: env.TRANSLATION_FORMAT || "numbered",
     apiKey: env.TRANSLATION_API_KEY, deeplxUrl: env.DEEPLX_URL,
     baseUrl: env.TRANSLATION_BASE_URL || "https://tokenhub.tencentmaas.com/v1", model: env.TRANSLATION_MODEL || "hy-mt2-pro",
+    ai: env.AI,
     chunkSize: bounded(env.TRANSLATION_CHUNK_SIZE, 16, 24), intervalMs: 1000, onProgress: saveTranslations,
   };
   async function translateBatch() {
     if (!isTranslationEnabled(config) || clock() < (meta.retryAt || 0)) return;
     const day = new Date(clock()).toISOString().slice(0, 10);
-    if (meta.day !== day) { meta.day = day; meta.used = 0; }
-    const missing = new Set(allArticles().flatMap(source => source.articles.map(article => article.title)).filter(title => !translations[translationKey(title)]));
-    if (!missing.size) { meta.translationError = null; return; }
+    if (meta.day !== day) { meta.day = day; meta.used = 0; meta.aiReservedNeurons = 0; }
+    const missing = missingTranslationTitles(allArticles(), translations);
+    if (!missing.length) { meta.translationError = null; return; }
     const remaining = bounded(env.TRANSLATION_DAILY_LIMIT, 1000, 10000) - (meta.used || 0);
     if (remaining <= 0) { meta.translationError = "站点今日翻译额度已用完。"; return; }
-    const batchSize = Math.min(missing.size, remaining, bounded(env.TRANSLATION_BATCH_SIZE, 16, 24));
+    const workersAI = config.provider === "workers-ai";
+    const batchSize = Math.min(missing.length, remaining, bounded(env.TRANSLATION_BATCH_SIZE, 16, workersAI ? 16 : 24));
+    if (workersAI) {
+      if (config.model !== WORKERS_AI_MODEL) { meta.translationError = "站点翻译模型配置不受支持。"; return; }
+      const reservation = workersAIReservation(missing.slice(0, batchSize));
+      const budget = bounded(env.TRANSLATION_AI_DAILY_NEURONS, 8000, 8000);
+      if ((meta.aiReservedNeurons || 0) + reservation > budget) { meta.translationError = "站点今日免费翻译预算已用完。"; return; }
+      meta.aiReservedNeurons = (meta.aiReservedNeurons || 0) + reservation;
+    }
     // Reserve before sending: a restart or failed provider response cannot reset the daily cap.
     meta.used = (meta.used || 0) + batchSize;
     await storage.put("meta", meta);
