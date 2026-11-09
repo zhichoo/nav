@@ -12,15 +12,26 @@ import { nodeSeekRanking, selectNodeSeekRanking } from "./nodeseek";
 import { PersonalTranslationContext, TranslationSettings, usePersonalArticle } from "./TranslationSettings";
 import { createPersonalTranslator } from "./personal-translation";
 import { PERSONAL_PREFERENCE_KEY, readPersonalConfig } from "./personal-preferences";
-import { categoryOrder, ignoreSource, moveCategory, moveVisibleSources, normalizeOrder, organizedSources, parseOrganization } from "./organization";
+import { categoryOrder, ignoreSource, moveCategory, moveVisibleSources, normalizeOrder, organizedSources } from "./organization";
 import type { Organization } from "./organization";
+import { defaultOrganization, LEGACY_ORGANIZATION_KEY, ORGANIZATION_KEY, restoreOrganization, serializeOrganization } from "./defaults";
 import type { Article, Category, FeedResponse, NodeSeekRanking, Source } from "./types";
 import { allSectionsOpen, articleTitle, expansionLabel, toggleSections, previewArticleCount, readPreference, relativeTime, savePreference } from "./lib";
 
 const initialSources: Source[] = SOURCES.map(source => ({ ...source, category: source.category as Source["category"], articles: [], updatedAt: null, status: "loading", error: null }));
+const initialOrganization = defaultOrganization(CATEGORIES.map(item => item.id), SOURCES.map(source => source.id));
 function readIds(key: string): string[] {
   try { const value: unknown = JSON.parse(readPreference(key, "[]")); return Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : []; }
   catch { return []; }
+}
+function readOrganization() {
+  for (const key of [ORGANIZATION_KEY, LEGACY_ORGANIZATION_KEY]) {
+    const saved = readPreference(key, "");
+    if (!saved) continue;
+    try { return restoreOrganization(JSON.parse(saved), initialOrganization); }
+    catch { return initialOrganization; }
+  }
+  return initialOrganization;
 }
 
 function ArticleCard({ article, index, original, showImages }: {
@@ -109,10 +120,7 @@ export default function App() {
   }, []);
   const [sources, setSources] = useState<Source[]>(initialSources);
   const [category, setCategory] = useState<Category | "ignored">(() => { const saved = readPreference("signal:category", "all"); return saved === "ignored" ? "ignored" : CATEGORIES.find(item => item.id === saved)?.id || "all"; });
-  const [organization, setOrganization] = useState<Organization>(() => {
-    try { return parseOrganization(JSON.parse(readPreference("signal:organization:v1", "{}"))); }
-    catch { return parseOrganization(null); }
-  });
+  const [organization, setOrganization] = useState<Organization>(readOrganization);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [sorting, setSorting] = useState(false);
   useEffect(() => {
@@ -123,7 +131,7 @@ export default function App() {
   }, [sorting]);
   const [notice, setNotice] = useState<{ text: string; undoId?: string; restore?: boolean } | null>(null);
   const [storageFailed, setStorageFailed] = useState(false);
-  useEffect(() => { setStorageFailed(!savePreference("signal:organization:v1", JSON.stringify(organization))); }, [organization]);
+  useEffect(() => { setStorageFailed(!savePreference(ORGANIZATION_KEY, serializeOrganization(organization))); }, [organization]);
   useEffect(() => {
     if (!notice) return;
     const timer = window.setTimeout(() => setNotice(null), 8000);
