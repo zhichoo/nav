@@ -131,6 +131,13 @@ export function createWorkerStore(storage, env, {
     chunkSize: bounded(env.TRANSLATION_CHUNK_SIZE, 16, 24), intervalMs: 1000, onProgress: saveTranslations,
   };
   async function translateBatch() {
+    // A configured provider change must not inherit an old provider's retry deadline.
+    if (meta.translationProvider !== config.provider) {
+      meta.translationProvider = config.provider;
+      meta.translationError = null;
+      meta.retryAt = 0;
+      await storage.put("meta", meta);
+    }
     if (!isTranslationEnabled(config) || clock() < (meta.retryAt || 0)) return;
     const day = new Date(clock()).toISOString().slice(0, 10);
     if (meta.day !== day) { meta.day = day; meta.used = 0; meta.aiReservedNeurons = 0; }

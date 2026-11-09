@@ -192,6 +192,26 @@ test("provider Retry-After is persisted, and HTTP readers cannot bypass it", asy
   assert.equal(requests, 2);
 });
 
+test("switching translation providers clears an old provider retry without bypassing new provider limits", async () => {
+  const storage = memoryStorage([["meta", {
+    day: "2026-10-26", used: 0, translationProvider: "openai", translationError: "stale error", retryAt: epoch + 30 * minute,
+  }]]);
+  let requests = 0;
+  const env = { TRANSLATION_PROVIDER: "workers-ai", TRANSLATION_MODEL: WORKERS_AI_MODEL, AI: { async run() { requests++; throw Object.assign(new Error("limited"), {retryAfterMs:5 * minute}); } } };
+  const first = fixture({ storage, env, sources: [ordinary] });
+  await first.store.refresh();
+  assert.equal(requests, 1);
+  assert.equal(storage.values.get("meta").translationProvider, "workers-ai");
+  assert.ok(storage.values.get("meta").retryAt > epoch);
+  const next = fixture({ storage, env, sources: [ordinary] });
+  next.setTime(epoch + minute);
+  await next.store.refresh();
+  assert.equal(requests, 1);
+  next.setTime(epoch + 10 * minute);
+  await next.store.refresh();
+  assert.equal(requests, 2);
+});
+
 test("Workers AI reserves its full request estimate before inference; failure and restart do not refund it", async () => {
   let requests = 0;
   const title = `Title ${ordinary.feed}`;
